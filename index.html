@@ -610,6 +610,7 @@ function defaultState() {
     settings: { medWeight: 0, oilFirst: false },
     customLeave: [],
     spans: [],
+    migrations: [],
   };
 }
 let state = defaultState();
@@ -1006,7 +1007,7 @@ function showRemain(y, why) {
   $("remain").hidden = false;
   clearTimeout(showRemain._t); showRemain._t = setTimeout(() => { $("remain").hidden = true; }, 15000);
 }
-function render() { setTimeout(() => { renderCodeChips(); $("noTeam").hidden = state.assignments.length > 0 || !$("welcome").hidden; }, 0); $("welcome").hidden = state.assignments.length > 0 || welcomeIsOff(); refreshCodeOptions(); renderCustomLeave(); renderSpans(); renderRangeOil(); renderLog(); renderYearSel(); renderDash(); renderCal(); renderBalances(); renderTeams(); renderSettings(); renderRangePreview(); }
+function render() { $("welcome").hidden = state.assignments.length > 0 || welcomeIsOff(); setTimeout(() => { renderCodeChips(); const w = $("welcome"); $("noTeam").hidden = state.assignments.length > 0 || !!(w && !w.hidden); }, 0); refreshCodeOptions(); renderCustomLeave(); renderSpans(); renderRangeOil(); renderLog(); renderYearSel(); renderDash(); renderCal(); renderBalances(); renderTeams(); renderSettings(); renderRangePreview(); }
 
 function renderYearSel() {
   const ys = new Set(); for (let y = 2025; y <= 2032; y++) ys.add(String(y));
@@ -1571,7 +1572,7 @@ function bindPhone() {
     $("rCode").value = b.dataset.code; $("rCode").dispatchEvent(new Event("change", { bubbles: true })); renderCodeChips();
   });
   $("rCode").addEventListener("change", renderCodeChips);
-  $("welcomeOff").addEventListener("click", () => { try { localStorage.setItem(LS_KEY + ".welcomeOff", "1"); } catch (e) {} $("welcome").hidden = true; $("noTeam").hidden = state.assignments.length > 0; });
+  if ($("welcomeOff")) $("welcomeOff").addEventListener("click", () => { try { localStorage.setItem(LS_KEY + ".welcomeOff", "1"); } catch (e) {} $("welcome").hidden = true; $("noTeam").hidden = state.assignments.length > 0; });
   // swipe left / right on the calendar to change month
   let sx = null, sy = 0;
   const cal = $("cal");
