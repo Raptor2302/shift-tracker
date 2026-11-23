@@ -1025,13 +1025,13 @@ function renderDash() {
     card("This year's leave left", `${fmtN(alNow)} <small>/ ${fmtN(c.alStart)}</small>`, `${fmtN(r2(t.al))} taken${bk(b.al, alNow - b.al)}${cpTxt}`, alNow < 0) +
     card("MC pool left (MC + MC w/o)", `${fmtN(mcNow)} <small>/ ${fmtN(yb.mc)}</small>`, `MC ${fmtN(t.mc.MC)} · MC w/o ${fmtN(t.mc.MCW)} taken${bk(P(b, "mc"), mcNow - P(b, "mc"))}`, mcNow < 0) +
     `<div class="card"><span class="lbl">Other leave left</span><div class="minis">
-      ${mini(hlNow, yb.hl, "HL", P(b, "hl"))}${mini(fclNow, yb.fcl, "FCL", P(b, "fcl"))}${mini(bdlNow, yb.bdl, "Birthday", P(b, "bdl"))}</div></div>` +
-    state.customLeave.map(cl => {
-      const def = LEAVE[cl.code], own = def.pool && def.pool !== "wf";
-      const tn = t.counts[cl.code] || 0, bn = b.counts[cl.code] || 0;
-      if (own) { const now = r2(cl.quota - P(t, def.pool)); return card(esc(cl.name) + " left", `${fmtN(now)} <small>/ ${fmtN(cl.quota)}</small>`, `${fmtN(P(t, def.pool))} taken${bk(P(b, def.pool), now - P(b, def.pool))}`, now < 0); }
-      return card(esc(cl.name), `${tn} <small>day${tn === 1 ? "" : "s"} taken</small>`, (bn ? `${bn} booked ahead · ` : "") + (cl.pool === "wf" ? "comes out of annual leave" : "tracked only"));
-    }).join("");
+      ${mini(hlNow, yb.hl, "HL", P(b, "hl"))}${mini(fclNow, yb.fcl, "FCL", P(b, "fcl"))}${mini(bdlNow, yb.bdl, "Birthday", P(b, "bdl"))}${
+      // leave types you added go in this card too
+      state.customLeave.map(cl => {
+        const def = LEAVE[cl.code], own = def.pool && def.pool !== "wf", tn = t.counts[cl.code] || 0, bn = b.counts[cl.code] || 0;
+        if (own) return `<div title="${esc(cl.name)}">${mini(r2(cl.quota - P(t, def.pool)), cl.quota, esc(cl.code), P(b, def.pool)).slice(5, -6)}</div>`;
+        return `<div title="${esc(cl.name)} · ${cl.pool === "wf" ? "comes out of annual leave" : "tracked only"}"><b>${tn}</b><span>${esc(cl.code)} days taken${bn ? ` · ${bn} booked` : ""}</span></div>`;
+      }).join("")}</div></div>`;
   const ms = $("mstrip");
   if (ms) ms.innerHTML = `<div><b class="${alNow < 0 ? "neg" : ""}">${fmtN(alNow)}</b><span>Leave left</span></div><div><b class="${avail < 0 ? "neg" : ""}">${fmtN(avail)}</b><span>OIL</span></div><div><b class="${bfNow < 0 ? "neg" : ""}">${fmtN(bfNow)}</b><span>Brought fwd</span></div>`;
   const bb = $("balBanner");
