@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"></head><body>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#0f1318"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"><meta name="apple-mobile-web-app-title" content="Shift Tracker"><link rel="manifest" href="manifest.webmanifest"><link rel="icon" href="icon-192.png"><link rel="apple-touch-icon" href="apple-touch-icon.png"></head><body>
 <title>Shift &amp; Leave Tracker</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap">
@@ -176,6 +176,76 @@ details.panel[open]>summary::after{content:"–"}
 .kv dt{color:var(--muted)}.kv dd{margin:0;font-family:var(--mono)}
 .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(20px + env(safe-area-inset-bottom,0px));background:var(--text);color:var(--bg);padding:9px 16px;border-radius:10px;font-size:13px;z-index:30}
 @media (prefers-reduced-motion:no-preference){.cell{transition:border-color .12s}}
+.mnav,.mstrip,.codechips{display:none}
+@media(max-width:700px){
+  body.mob .mhide{display:none!important}
+  .wrap{padding-top:12px;padding-bottom:calc(84px + env(safe-area-inset-bottom,0px))}
+  header.top{margin-bottom:10px}
+  h1{font-size:19px}.subtitle{display:none}
+  header .controls{width:100%}
+  header .controls label{flex:1 1 45%}
+  header .controls .btn{flex:1 1 30%}
+  input,select,textarea{font-size:16px!important;min-height:44px}
+  .btn{min-height:44px;padding:9px 14px}.btn.sm{min-height:40px}
+  .iconbtn{width:44px;height:44px}
+  .mnav{display:grid;grid-template-columns:repeat(5,1fr);position:fixed;left:0;right:0;bottom:0;z-index:15;background:var(--surface);border-top:1px solid var(--border);padding:4px 4px calc(4px + env(safe-area-inset-bottom,0px))}
+  .mnav button{border:0;background:transparent;color:var(--muted);font-size:11px;font-weight:600;display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px 0;min-height:54px;border-radius:10px;cursor:pointer}
+  .mnav button span{font-size:20px;line-height:1}
+  .mnav button[aria-current="page"]{color:var(--accent);background:var(--surface2)}
+  .mstrip{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;width:100%;border:1px solid var(--border);background:var(--surface);border-radius:12px;padding:8px;margin-bottom:10px;cursor:pointer;text-align:center}
+  .mstrip div{display:flex;flex-direction:column}
+  .mstrip b{font-family:var(--mono);font-size:20px;font-variant-numeric:tabular-nums}
+  .mstrip span{font-size:11px;color:var(--muted);font-weight:600}
+  .dash{grid-template-columns:1fr 1fr;gap:8px}
+  .dash .card{padding:10px}.card .big{font-size:20px}.card .sub{font-size:11px}
+  .calbox{padding:10px 6px;border-radius:12px}
+  .cal-head{padding:0 4px}
+  .cal-head .controls{flex-wrap:nowrap}
+  .cal{gap:3px;touch-action:pan-y}
+  .cell{min-height:64px}
+  .dnum{font-size:15px}.shift{font-size:13px}
+  .dow{font-size:10px}
+  .legend{font-size:11px;padding:0 4px}
+  details.panel{border-radius:12px}
+  body.mob details.panel[data-m="leave"]>summary,body.mob details.panel[data-m="bal"]>summary{pointer-events:none}
+  body.mob details.panel[data-m="leave"]>summary::after,body.mob details.panel[data-m="bal"]>summary::after{content:""}
+  .tabs button{min-height:44px;font-size:14px}
+  .segopt{min-height:48px;font-size:15px}
+  .rcodelbl{display:none!important}
+  .codechips{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+  .codechips button{border:1px solid var(--border);background:var(--surface);border-radius:10px;min-height:48px;padding:4px;font-weight:700;font-size:14px;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1.15}
+  .codechips button small{font-size:10px;font-weight:500;color:var(--muted)}
+  .codechips button[aria-checked="true"]{border-color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent);background:var(--surface2)}
+  .preview{font-size:14px}
+  .mrow .btn{flex:1}
+  .overlay{align-items:flex-end;padding:0}
+  .modal{max-width:none;border-radius:18px 18px 0 0;max-height:90vh;padding:16px 16px calc(16px + env(safe-area-inset-bottom,0px))}
+  .modal::before{content:"";align-self:center;width:40px;height:4px;border-radius:2px;background:var(--border);margin:-6px 0 2px}
+  .toast{bottom:calc(84px + env(safe-area-inset-bottom,0px))}
+  .logbox{margin-top:0}
+  .logbox .cal-head .controls{width:100%;display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .logbox .cal-head .controls .check{grid-column:1/-1;flex-direction:row}
+  #teamPanel{order:-1}
+  .tablewrap{overflow:visible}
+  table.log{min-width:0}
+  table.log thead{display:none}
+  table.log,table.log tbody,table.log tfoot{display:block}
+  table.log tr{display:grid;grid-template-columns:1fr 1fr;gap:4px 10px;background:var(--surface2);border-radius:12px;padding:10px 12px;margin-bottom:8px}
+  table.log td{border:0;padding:0;font-size:13px;min-width:0}
+  table.log tbody td:nth-child(1){font-weight:700;font-size:15px}
+  table.log tbody td:nth-child(3){text-align:right}
+  table.log tbody td:nth-child(4),table.log tbody td:nth-child(5),table.log tbody td:nth-child(6),table.log tbody td:nth-child(8){grid-column:1/-1}
+  table.log tbody td:nth-child(4){text-align:left;font-size:15px;font-weight:700}
+  table.log tbody td:nth-child(4)::after{content:" days deducted";font-family:var(--font);font-weight:500;font-size:12px;color:var(--muted)}
+  table.log tbody td:nth-child(5):not(:empty)::before{content:"Taken from: ";color:var(--muted)}
+  table.log tbody td:nth-child(6):not(:empty)::before{content:"OIL used: ";color:var(--muted)}
+  table.log tbody td:nth-child(8):empty,table.log tbody td:nth-child(5):empty,table.log tbody td:nth-child(6):empty{display:none}
+  table.log tbody td:nth-child(7){grid-row:1;grid-column:2;text-align:right}
+  table.log tbody td:nth-child(3){grid-column:2;grid-row:2}
+  table.log tbody td[colspan]{grid-column:1/-1;text-align:left}
+  table.log tfoot tr{background:transparent;padding:4px 12px}
+  table.log tfoot td[colspan="4"]{display:none}
+}
 </style>
 
 <div class="wrap">
@@ -185,7 +255,7 @@ details.panel[open]>summary::after{content:"–"}
       <div class="subtitle">4-day cycle · M 8am–8pm · N 8pm–8am · 2 off · Singapore PH &amp; OIL</div>
       <div class="status-line" id="syncPill" role="status"></div>
     </div>
-    <div class="controls">
+    <div class="controls" data-m="more">
       <label for="yearSel">Leave year<select id="yearSel"></select></label>
       <label for="asOf">Balances as of<input type="date" id="asOf"></label>
       <button class="btn" id="exportJson" type="button">Export JSON</button>
@@ -195,8 +265,8 @@ details.panel[open]>summary::after{content:"–"}
     </div>
   </header>
   <div id="storageBanner" class="banner" hidden></div>
-  <div id="balBanner" class="banner" hidden></div>
-  <div id="welcome" class="banner welcome" hidden>
+  <div id="balBanner" class="banner" hidden data-m="bal"></div>
+  <div id="welcome" class="banner welcome" hidden data-m="cal">
     <b>Welcome! Set up your tracker in three steps:</b>
     <ol>
       <li><b>Team rotation</b>: add your team (A, B, C or D) and the dates you're on it. Your shifts then appear on the calendar.</li>
@@ -204,12 +274,14 @@ details.panel[open]>summary::after{content:"–"}
       <li><b>Settings</b>: add your birthday and check the default quotas.</li>
     </ol>
     Everything is saved in this browser only. Use <b>Export JSON</b> to back up or move to another device, and <b>Import JSON</b> to restore.
+    <div class="mrow"><button class="btn sm" id="welcomeOff" type="button">Got it, hide this</button></div>
   </div>
 
-  <section class="dash" id="dash" aria-label="Summary"></section>
+  <button type="button" class="mstrip" id="mstrip" data-m="cal" aria-label="Open balances"></button>
+  <section class="dash" id="dash" aria-label="Summary" data-m="bal"></section>
 
   <div class="layout">
-    <section class="calbox" aria-label="Calendar">
+    <section class="calbox" aria-label="Calendar" data-m="cal">
       <div class="cal-head">
         <h2 id="monthLabel"></h2>
         <div class="controls">
@@ -230,7 +302,7 @@ details.panel[open]>summary::after{content:"–"}
     </section>
 
     <aside class="side">
-      <details class="panel" open>
+      <details class="panel" open data-m="leave" id="applyPanel">
         <summary>Apply leave for a date range</summary>
         <div class="pbody">
           <div class="tabs" role="tablist" aria-label="Kind of leave">
@@ -243,7 +315,8 @@ details.panel[open]>summary::after{content:"–"}
               <label for="rStart">From<input type="date" id="rStart"></label>
               <label for="rEnd">To<input type="date" id="rEnd"></label>
             </div>
-            <label for="rCode">Leave / status<select id="rCode"></select></label>
+            <label for="rCode" class="rcodelbl">Leave / status<select id="rCode"></select></label>
+            <div class="codechips" id="rCodeChips" role="radiogroup" aria-label="Leave type"></div>
             <div id="rOilWrap" class="evbox" hidden>
               <span class="lbl2">Which OIL days? Tick one public holiday for each working shift</span>
               <div class="list" id="rOilList"></div>
@@ -277,7 +350,7 @@ details.panel[open]>summary::after{content:"–"}
         </div>
       </details>
 
-      <details class="panel" open>
+      <details class="panel" open data-m="bal" id="balPanel">
         <summary>Balances &amp; entitlements · <span id="balYear"></span></summary>
         <div class="pbody">
           <div class="g2">
@@ -304,7 +377,7 @@ details.panel[open]>summary::after{content:"–"}
         </div>
       </details>
 
-      <details class="panel" open id="spPanel">
+      <details class="panel" open id="spPanel" data-m="more">
         <summary>Multi-day events</summary>
         <div class="pbody">
           <label for="sp-title">Event<input type="text" id="sp-title" placeholder="e.g. Japan trip, Training week"></label>
@@ -324,7 +397,7 @@ details.panel[open]>summary::after{content:"–"}
       </details>
 
 
-      <details class="panel">
+      <details class="panel" data-m="more" id="teamPanel">
         <summary>My team rotation</summary>
         <div class="pbody">
           <div class="list" id="teamList"></div>
@@ -333,7 +406,7 @@ details.panel[open]>summary::after{content:"–"}
         </div>
       </details>
 
-      <details class="panel">
+      <details class="panel" data-m="more">
         <summary>My leave types</summary>
         <div class="pbody">
           <div class="list" id="clList"></div>
@@ -354,7 +427,7 @@ details.panel[open]>summary::after{content:"–"}
         </div>
       </details>
 
-      <details class="panel">
+      <details class="panel" data-m="more">
         <summary>Settings</summary>
         <div class="pbody">
           <p class="hint">Default quotas for each new year:</p>
@@ -379,10 +452,11 @@ details.panel[open]>summary::after{content:"–"}
     </aside>
   </div>
 
-  <section class="calbox logbox" aria-labelledby="logTitle">
+  <section class="calbox logbox" aria-labelledby="logTitle" data-m="log">
     <div class="cal-head">
       <h2 id="logTitle">Leave log</h2>
       <div class="controls">
+        <label for="logYear">Year<select id="logYear"></select></label>
         <label for="logType">Leave type<select id="logType"></select></label>
         <label for="logShow">Show<select id="logShow">
           <option value="taken">Taken so far</option>
@@ -444,6 +518,13 @@ details.panel[open]>summary::after{content:"–"}
   </div>
 </div>
 <div class="toast" id="toast" hidden></div>
+<nav class="mnav" id="mnav" aria-label="Sections">
+  <button type="button" data-t="cal"><span aria-hidden="true">📅</span>Calendar</button>
+  <button type="button" data-t="leave"><span aria-hidden="true">✈️</span>Apply leave</button>
+  <button type="button" data-t="bal"><span aria-hidden="true">📊</span>Balances</button>
+  <button type="button" data-t="log"><span aria-hidden="true">📋</span>Log</button>
+  <button type="button" data-t="more"><span aria-hidden="true">⚙️</span>More</button>
+</nav>
 
 <script>
 /*ENGINE START*/
@@ -851,12 +932,14 @@ function renderLog() {
   $("logFoot").innerHTML = rows.length ? `<tr><td colspan="3">${rows.length} day${rows.length === 1 ? "" : "s"}</td><td class="num">${fmtN(r2(sum))}</td><td colspan="4"></td></tr>` : "";
   $("logChips").innerHTML = Object.entries(totals).map(([k, t]) => `<span class="chip">${tagHtml(k)}${t.n} day${t.n === 1 ? "" : "s"} · <b>${fmtN(r2(t.w))}d</b></span>`).join("");
 }
-function render() { $("welcome").hidden = state.assignments.length > 0; refreshCodeOptions(); renderCustomLeave(); renderSpans(); renderRangeOil(); renderLog(); renderYearSel(); renderDash(); renderCal(); renderBalances(); renderTeams(); renderSettings(); renderRangePreview(); }
+function render() { setTimeout(renderCodeChips, 0); $("welcome").hidden = state.assignments.length > 0 || welcomeIsOff(); refreshCodeOptions(); renderCustomLeave(); renderSpans(); renderRangeOil(); renderLog(); renderYearSel(); renderDash(); renderCal(); renderBalances(); renderTeams(); renderSettings(); renderRangePreview(); }
 
 function renderYearSel() {
   const ys = new Set(); for (let y = 2025; y <= 2032; y++) ys.add(String(y));
   Object.keys(state.years).forEach(y => ys.add(y)); state.holidays.forEach(h => ys.add(h.date.slice(0, 4)));
   $("yearSel").innerHTML = [...ys].sort().map(y => `<option ${y === ui.year ? "selected" : ""}>${y}</option>`).join("");
+  $("logYear").innerHTML = $("yearSel").innerHTML;
+  $("logYear").value = ui.year;
   $("asOf").value = ui.asOf;
 }
 
@@ -892,6 +975,8 @@ function renderDash() {
       if (own) { const now = r2(cl.quota - P(t, def.pool)); return card(esc(cl.name) + " left", `${fmtN(now)} <small>/ ${fmtN(cl.quota)}</small>`, `${fmtN(P(t, def.pool))} taken${bk(P(b, def.pool), now - P(b, def.pool))}`, now < 0); }
       return card(esc(cl.name), `${tn} <small>day${tn === 1 ? "" : "s"} taken</small>`, (bn ? `${bn} booked ahead · ` : "") + (cl.pool === "wf" ? "comes out of annual leave" : "tracked only"));
     }).join("");
+  const ms = $("mstrip");
+  if (ms) ms.innerHTML = `<div><b class="${alNow < 0 ? "neg" : ""}">${fmtN(alNow)}</b><span>Leave left</span></div><div><b class="${avail < 0 ? "neg" : ""}">${fmtN(avail)}</b><span>OIL</span></div><div><b class="${bfNow < 0 ? "neg" : ""}">${fmtN(bfNow)}</b><span>Brought fwd</span></div>`;
   const bb = $("balBanner");
   bb.hidden = !!c.cp || !(getYear(y)._new || ((+yb.al || 0) === 0 && (+yb.bf || 0) === 0));
   bb.textContent = `Enter your ${y} brought-forward and annual leave figures under Balances & entitlements so the remaining counts are right.`;
@@ -900,6 +985,7 @@ function renderDash() {
 // After an entry from a side panel: jump the calendar to it and highlight its days
 function showOnCal(from, to) {
   if (!from) return;
+  if (isPhone() && mtab !== "cal") setMTab("cal");
   ui.month = from.slice(0, 7);
   ui.flash = { from, to: to || from };
   renderCal();
@@ -1169,6 +1255,7 @@ function buildCsv(y) {
 
 /* ---------- events ---------- */
 function bind() {
+  $("logYear").addEventListener("change", e => { $("yearSel").value = e.target.value; $("yearSel").dispatchEvent(new Event("change")); });
   $("yearSel").addEventListener("change", e => {
     ui.year = e.target.value;
     const t = todayIso();
@@ -1363,12 +1450,52 @@ function bind() {
   $("iConfirm").onclick = () => { setState(ui.pendingImport); refreshCodeOptions(); ui.pendingImport = null; $("importModal").hidden = true; save(); render(); toast("Backup restored"); };
 }
 
+const PHONE = matchMedia("(max-width:700px)");
+const isPhone = () => PHONE.matches;
+let mtab = "cal";
+function setMTab(t) {
+  mtab = t;
+  document.body.classList.toggle("mob", isPhone());
+  document.querySelectorAll("[data-m]").forEach(el => el.classList.toggle("mhide", isPhone() && !el.dataset.m.split(" ").includes(t)));
+  document.querySelectorAll("#mnav button").forEach(b => b.dataset.t === t ? b.setAttribute("aria-current", "page") : b.removeAttribute("aria-current"));
+  if (isPhone()) { const p = document.querySelector('[data-m~="' + t + '"]'); if (p && p.tagName === "DETAILS") p.open = true; if (t === "bal") $("balPanel").open = true; if (t === "leave") $("applyPanel").open = true; if (t === "more" && !state.assignments.length) $("teamPanel").open = true; window.scrollTo(0, 0); }
+}
+function renderCodeChips() {
+  const sel = $("rCode"), box = $("rCodeChips"); if (!sel || !box) return;
+  box.innerHTML = [...sel.options].filter(o => o.value).map(o => {
+    const code = o.value, nm = (LEAVE[code] && LEAVE[code].name) || o.textContent;
+    return `<button type="button" role="radio" aria-checked="${sel.value === code}" data-code="${esc(code)}">${esc(short(code))}<small>${esc(nm)}</small></button>`;
+  }).join("");
+}
+function welcomeIsOff() { try { return localStorage.getItem(LS_KEY + ".welcomeOff") === "1"; } catch (e) { return false; } }
+function bindPhone() {
+  $("mnav").addEventListener("click", e => { const b = e.target.closest("button[data-t]"); if (b) setMTab(b.dataset.t); });
+  $("mstrip").addEventListener("click", () => setMTab("bal"));
+  $("rCodeChips").addEventListener("click", e => {
+    const b = e.target.closest("button[data-code]"); if (!b) return;
+    $("rCode").value = b.dataset.code; $("rCode").dispatchEvent(new Event("change", { bubbles: true })); renderCodeChips();
+  });
+  $("rCode").addEventListener("change", renderCodeChips);
+  $("welcomeOff").addEventListener("click", () => { try { localStorage.setItem(LS_KEY + ".welcomeOff", "1"); } catch (e) {} $("welcome").hidden = true; });
+  // swipe left / right on the calendar to change month
+  let sx = null, sy = 0;
+  const cal = $("cal");
+  cal.addEventListener("touchstart", e => { if (e.touches.length === 1) { sx = e.touches[0].clientX; sy = e.touches[0].clientY; } }, { passive: true });
+  cal.addEventListener("touchend", e => {
+    if (sx === null) return; const t = e.changedTouches[0], dx = t.clientX - sx, dy = t.clientY - sy; sx = null;
+    if (Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy) * 1.5) { $(dx < 0 ? "nextM" : "prevM").click(); }
+  }, { passive: true });
+  PHONE.addEventListener("change", () => setMTab(mtab));
+}
+
 load();
 let migratedLocally = false;
 if (applyMigrations()) { saveLocal(); migratedLocally = true; }
 refreshCodeOptions(); $("rCode").value = "OL";
 bind();
+bindPhone();
 render();
+setMTab("cal");
 showStorageBanner();
 startCloud();
 // Keep "as of" on today while the page stays open, so balances update the day leave is taken
