@@ -177,6 +177,8 @@ details.panel[open]>summary::after{content:"–"}
 .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(20px + env(safe-area-inset-bottom,0px));background:var(--text);color:var(--bg);padding:9px 16px;border-radius:10px;font-size:13px;z-index:30}
 @media (prefers-reduced-motion:no-preference){.cell{transition:border-color .12s}}
 .mnav,.mstrip,.codechips{display:none}
+.noteam{display:none}
+@media(max-width:700px){.noteam:not([hidden]){display:block}.noteam .btn{display:block;width:100%;margin-top:8px}}
 @media(max-width:700px){
   body.mob .mhide{display:none!important}
   .wrap{padding-top:12px;padding-bottom:calc(84px + env(safe-area-inset-bottom,0px))}
@@ -269,14 +271,15 @@ details.panel[open]>summary::after{content:"–"}
   <div id="welcome" class="banner welcome" hidden data-m="cal">
     <b>Welcome! Set up your tracker in three steps:</b>
     <ol>
-      <li><b>Team rotation</b>: add your team (A, B, C or D) and the dates you're on it. Your shifts then appear on the calendar.</li>
-      <li><b>Balances &amp; entitlements</b>: enter your annual leave, brought-forward days and OIL as of a date (the starting point).</li>
-      <li><b>Settings</b>: add your birthday and check the default quotas.</li>
+      <li><b>Team rotation</b> (on a phone: <b>Settings</b> tab at the bottom): add your team (A, B, C or D) and the date you joined it. Your shifts then appear on the calendar, going back to earlier dates too.</li>
+      <li><b>Balances &amp; entitlements</b> (on a phone: <b>Balances</b> tab): enter your annual leave, brought-forward days and OIL as of a date (the starting point).</li>
+      <li><b>Settings</b> (on a phone: <b>Settings</b> tab): add your birthday and check the default quotas.</li>
     </ol>
     Everything is saved in this browser only. Use <b>Export JSON</b> to back up or move to another device, and <b>Import JSON</b> to restore.
     <div class="mrow"><button class="btn sm" id="welcomeOff" type="button">Got it, hide this</button></div>
   </div>
 
+  <div class="banner noteam" id="noTeam" data-m="cal" hidden>No shifts showing yet. Set your team rotation in the <b>Settings</b> tab. <button type="button" class="btn sm" id="goTeam">Open Settings</button></div>
   <button type="button" class="mstrip" id="mstrip" data-m="cal" aria-label="Open balances"></button>
   <section class="dash" id="dash" aria-label="Summary" data-m="bal"></section>
 
@@ -402,7 +405,7 @@ details.panel[open]>summary::after{content:"–"}
         <div class="pbody">
           <div class="list" id="teamList"></div>
           <div class="mrow"><button class="btn sm" id="addTeam" type="button">+ Add date range</button></div>
-          <p class="hint">If ranges overlap, the one lower in the list wins. Anchors: A 24 Nov 2026 M, B 25 Nov, C 23 Nov, D 22 Nov.</p>
+          <p class="hint">Your first range also runs backwards, so earlier dates follow the same rotation. If ranges overlap, the one lower in the list wins. Anchors: A 24 Nov 2026 M, B 25 Nov, C 23 Nov, D 22 Nov.</p>
         </div>
       </details>
 
@@ -443,7 +446,7 @@ details.panel[open]>summary::after{content:"–"}
           </div>
           <p class="hint">Shows on the calendar every year.</p>
           <label for="s-med">Med appointment counts as (days, on a working shift)<input type="number" step="0.25" min="0" id="s-med"></label>
-          <label class="check" for="s-carry"><input type="checkbox" id="s-carry">Unused Christmas OIL can be used the next year</label>
+          <label class="check" for="s-carry"><input type="checkbox" id="s-carry">Unused OIL can be used the next year</label>
           <label class="check" for="s-oil"><input type="checkbox" id="s-oil">OIL leave uses unlocked OIL before brought-forward leave</label>
           <p class="hint">Unticked follows the standard order for OIL too: brought forward, then OIL, then this year's leave.</p>
           <div class="status-line" id="saveStatus"></div>
@@ -523,7 +526,7 @@ details.panel[open]>summary::after{content:"–"}
   <button type="button" data-t="leave"><span aria-hidden="true">✈️</span>Apply leave</button>
   <button type="button" data-t="bal"><span aria-hidden="true">📊</span>Balances</button>
   <button type="button" data-t="log"><span aria-hidden="true">📋</span>Log</button>
-  <button type="button" data-t="more"><span aria-hidden="true">⚙️</span>More</button>
+  <button type="button" data-t="more"><span aria-hidden="true">⚙️</span>Settings</button>
 </nav>
 
 <script>
@@ -553,7 +556,13 @@ function buildLeave(list) {
 }
 let LEAVE = buildLeave([]);
 const short = c => (LEAVE[c] && LEAVE[c].short) || c;
-const PH_SEED = [
+const PH_2025 = [
+  ["2025-01-01","New Year's Day"],["2025-01-29","Chinese New Year"],["2025-01-30","Chinese New Year"],
+  ["2025-03-31","Hari Raya Puasa"],["2025-04-18","Good Friday"],["2025-05-01","Labour Day"],["2025-05-03","Polling Day"],
+  ["2025-05-12","Vesak Day"],["2025-06-07","Hari Raya Haji"],["2025-08-09","National Day"],
+  ["2025-10-20","Deepavali"],["2025-12-25","Christmas Day"],
+];
+const PH_SEED = [...PH_2025,
   ["2026-01-01","New Year's Day"],["2026-02-17","Chinese New Year"],["2026-02-18","Chinese New Year"],
   ["2026-03-21","Hari Raya Puasa"],["2026-04-03","Good Friday"],["2026-05-01","Labour Day"],
   ["2026-05-27","Hari Raya Haji"],["2026-05-31","Vesak Day"],["2026-08-09","National Day"],
@@ -583,7 +592,12 @@ const dn = s => { const [y, m, d] = s.split("-").map(Number); return Math.round(
 const isoOf = n => new Date(n * DAY).toISOString().slice(0, 10);
 const r2 = x => Math.round(x * 100) / 100;
 
-function teamOn(d) { let t = null; for (const a of state.assignments) if (a.start && a.end && a.start <= d && d <= a.end) t = a.team; return t; }
+function teamOn(d) {
+  let t = null, first = null;
+  for (const a of state.assignments) { if (a.start && a.end && a.start <= d && d <= a.end) t = a.team; if (a.start && (!first || a.start < first.start)) first = a; }
+  if (!t && first && d < first.start) t = first.team;   // backdated: the rotation runs back from the first range
+  return t;
+}
 function schedShift(team, d) { if (!team || !ANCHORS[team]) return null; const k = (((dn(d) - dn(ANCHORS[team])) % 4) + 4) % 4; return CYCLE[k]; }
 function dayInfo(d) {
   const team = teamOn(d), sched = schedShift(team, d), rec = state.days[d] || {};
@@ -593,13 +607,15 @@ function dayInfo(d) {
 function getYear(y) { return state.years[y] || { bf: 0, al: 0, ...state.defaults, _new: true }; }
 function phsOfYear(y) { return state.holidays.filter(h => h.date.startsWith(y + "-")).map(h => h.date).sort(); }
 
-// Unused Christmas OIL from last year can still be used this year (setting on by default)
+// Unused OIL from last year can still be used this year (setting on by default).
+// Only carried from a year that has been set up (balances entered); it doesn't roll on a second year.
 function carryIn(y) {
   if (state.settings.carryXmas === false) return [];
-  const py = String(+y - 1), xs = state.holidays.filter(h => h.date === py + "-12-25");
-  if (!xs.length) return [];
+  const py = String(+y - 1);
+  if (!state.years[py]) return [];
   const pc = computeYear(py);
-  return xs.map(h => ({ key: h.date, left: r2(1 - (pc.oilTaken[h.date] || 0)) })).filter(u => u.left > 0);
+  return pc.units.filter(u => !u.carried && u.left > 1e-9 && u.from <= py + "-12-31")
+    .map(u => ({ key: u.key === "cp" ? "cp-" + py : u.key, left: r2(u.left) }));
 }
 
 function computeYear(y) {
@@ -610,7 +626,7 @@ function computeYear(y) {
   const cp = yb.cp && yb.cp.date && yb.cp.date.startsWith(y + "-") ? yb.cp : null;
   // OIL as units, one per public holiday, so every OIL day taken can be traced to the holiday it came from
   const units = [];
-  const carried = carryIn(y);
+  const carried = cp && cp.date > y + "-01-01" ? [] : carryIn(y);
   for (const u of carried) units.push({ key: u.key, left: u.left, init: u.left, from: y + "-01-01", carried: true });
   if (cp) {
     let rest = +cp.oil || 0;
@@ -626,7 +642,7 @@ function computeYear(y) {
   const takeOil = (d, t, prefer) => {
     const parts = [];
     const cand = units.filter(u => u.from <= d && u.left > 1e-9).sort((a, b) =>
-      (b.key === prefer) - (a.key === prefer) || reserved.has(a.key) - reserved.has(b.key) || (b.key === "cp") - (a.key === "cp") || a.key.localeCompare(b.key));
+      (b.key === prefer) - (a.key === prefer) || reserved.has(a.key) - reserved.has(b.key) || (!!b.carried) - (!!a.carried) || (b.key === "cp") - (a.key === "cp") || a.key.localeCompare(b.key));
     for (const u of cand) {
       if (t <= 1e-9) break;
       const a = Math.min(u.left, t); u.left -= a; t -= a;
@@ -675,11 +691,11 @@ function computeYear(y) {
     per[d] = { w: ded, gross: w, br, code, working: info.working };
   }
   const oilUsedThrough = x => dates.filter(d => d <= x).reduce((s, d) => s + per[d].br.oil, 0);
-  return { y, yb, cp, oilBase, carried, bfStart: bf + wf.bf, alStart: al + wf.al, phs, phBefore, bfLeft: r2(bf), alLeft: r2(al), oilUsed: r2(oilUsed), oilTaken, used, mcSplit, wf, counts, medDays, per, oilUsedThrough };
+  return { y, yb, cp, units, oilBase, carried, bfStart: bf + wf.bf, alStart: al + wf.al, phs, phBefore, bfLeft: r2(bf), alLeft: r2(al), oilUsed: r2(oilUsed), oilTaken, used, mcSplit, wf, counts, medDays, per, oilUsedThrough };
 }
 
 // Holidays an OIL day can be tagged with: this year's (earned strictly before the leave date) plus
-// last year's Christmas if carried over. A holiday is "used" once a leave day has taken its OIL.
+// last year's unused OIL if carried over. A holiday is "used" once a leave day has taken its OIL.
 function oilChoices(d, excludeDays) {
   const y = d.slice(0, 4), used = {}, ex = excludeDays || (() => false);
   for (const [k, r] of Object.entries(state.days)) if (!ex(k) && r.status === "OIL" && r.oilFor) used[r.oilFor] = k;
@@ -689,7 +705,7 @@ function oilChoices(d, excludeDays) {
   const cp = state.years[y] && state.years[y].cp;
   if (cp && Array.isArray(cp.oilFrom)) for (const h of state.holidays) if (h.date.startsWith(y + "-") && h.date < cp.date && !cp.oilFrom.includes(h.date) && !used[h.date]) used[h.date] = "before";
   const name = {}; state.holidays.forEach(h => name[h.date] = h.name);
-  const carried = carryIn(y).map(u => ({ date: u.key, name: name[u.key] + " " + u.key.slice(0, 4) + " (carried over)", unlocked: true, usedOn: used[u.key] || null }));
+  const carried = computeYear(y).carried.map(u => ({ date: u.key, name: u.key.startsWith("cp") ? "OIL from your " + u.key.slice(3) + " starting point (carried over)" : name[u.key] + " " + u.key.slice(0, 4) + " (carried over)", unlocked: true, usedOn: used[u.key] || null }));
   return carried.concat(state.holidays.filter(h => h.date.startsWith(y + "-")).sort((a, b) => a.date.localeCompare(b.date))
     .map(h => ({ date: h.date, name: h.name, unlocked: h.date < d, usedOn: used[h.date] || null })));
 }
@@ -762,7 +778,7 @@ function workedStats(y, asOf) {
 let storageOk = true;
 let localStamp = 0;            // when this browser's copy was last changed
 const cloud = { ref: null, ok: false, lastWritten: 0, timer: null, writing: false };
-function setState(s) { state = s; if (!Array.isArray(state.migrations)) state.migrations = []; if (!Array.isArray(state.spans)) state.spans = []; LEAVE = buildLeave(state.customLeave); }
+function setState(s) { state = s; if (Array.isArray(state.holidays) && !state.holidays.some(h => h.date.startsWith("2025-"))) state.holidays = PH_2025.map(([date, name]) => ({ date, name })).concat(state.holidays); if (!Array.isArray(state.migrations)) state.migrations = []; if (!Array.isArray(state.spans)) state.spans = []; LEAVE = buildLeave(state.customLeave); }
 function applyMigrations() { return false; }
 function load() {
   try {
@@ -857,6 +873,7 @@ function refreshCodeOptions() {
 // "Deepavali (8 Nov) 1d, Christmas Day (25 Dec 2026, carried over) 0.5d"
 function oilName(k, carried) {
   if (k === "cp") return "OIL at your starting point";
+  if (k.startsWith("cp-")) return `OIL from your ${k.slice(3)} starting point (carried over)`;
   const h = state.holidays.find(x => x.date === k), dt = fmtShort(k) + (carried || k.slice(0, 4) !== ui.year ? " " + k.slice(0, 4) : "");
   return `${h ? h.name : "Public holiday"} (${dt}${carried ? ", carried over" : ""})`;
 }
@@ -932,11 +949,12 @@ function renderLog() {
   $("logFoot").innerHTML = rows.length ? `<tr><td colspan="3">${rows.length} day${rows.length === 1 ? "" : "s"}</td><td class="num">${fmtN(r2(sum))}</td><td colspan="4"></td></tr>` : "";
   $("logChips").innerHTML = Object.entries(totals).map(([k, t]) => `<span class="chip">${tagHtml(k)}${t.n} day${t.n === 1 ? "" : "s"} · <b>${fmtN(r2(t.w))}d</b></span>`).join("");
 }
-function render() { setTimeout(renderCodeChips, 0); $("welcome").hidden = state.assignments.length > 0 || welcomeIsOff(); refreshCodeOptions(); renderCustomLeave(); renderSpans(); renderRangeOil(); renderLog(); renderYearSel(); renderDash(); renderCal(); renderBalances(); renderTeams(); renderSettings(); renderRangePreview(); }
+function render() { setTimeout(() => { renderCodeChips(); $("noTeam").hidden = state.assignments.length > 0 || !$("welcome").hidden; }, 0); $("welcome").hidden = state.assignments.length > 0 || welcomeIsOff(); refreshCodeOptions(); renderCustomLeave(); renderSpans(); renderRangeOil(); renderLog(); renderYearSel(); renderDash(); renderCal(); renderBalances(); renderTeams(); renderSettings(); renderRangePreview(); }
 
 function renderYearSel() {
   const ys = new Set(); for (let y = 2025; y <= 2032; y++) ys.add(String(y));
   Object.keys(state.years).forEach(y => ys.add(y)); state.holidays.forEach(h => ys.add(h.date.slice(0, 4)));
+  for (const y of [...ys]) if (y < "2025") ys.delete(y);
   $("yearSel").innerHTML = [...ys].sort().map(y => `<option ${y === ui.year ? "selected" : ""}>${y}</option>`).join("");
   $("logYear").innerHTML = $("yearSel").innerHTML;
   $("logYear").value = ui.year;
@@ -1048,7 +1066,7 @@ function renderCal() {
       ${teamStart ? `<span class="mark" title="Your team changes to Team ${teamStart.team} from this day">→ Team ${teamStart.team}</span>` : ""}
       ${cpY && cpY.date === d ? `<span class="mark" title="Starting point: ${fmtN(cpY.oil)} OIL, ${fmtN(cpY.al)} leave, ${fmtN(cpY.bf)} brought forward">Start: ${fmtN(cpY.oil)} OIL · ${fmtN(cpY.al)} AL</span>` : ""}
       ${i.rec.status ? `<span class="crow">${tagHtml(i.rec.status)}<span class="wt">${p && p.w > 0 ? "-" + fmtN(p.w) + "d" : "0d"}</span></span>` : ""}
-      ${p && p.br.oilFrom && p.br.oilFrom.length ? `<span class="oilu" title="${esc(oilPartsText(p.br.oilFrom, true))}">OIL · ${esc(p.br.oilFrom.map(x => x.key === "cp" ? "start" : ((state.holidays.find(h => h.date === x.key) || {}).name || "PH")).join(", "))}</span>` : ""}
+      ${p && p.br.oilFrom && p.br.oilFrom.length ? `<span class="oilu" title="${esc(oilPartsText(p.br.oilFrom, true))}">OIL · ${esc(p.br.oilFrom.map(x => x.key.startsWith("cp") ? "start" : ((state.holidays.find(h => h.date === x.key) || {}).name || "PH")).join(", "))}</span>` : ""}
       ${evs.slice(0, 2).map(e => `<span class="ev">${e.time ? `<b>${e.time}</b> ` : ""}${esc(e.title)}</span>`).join("")}
       ${more ? `<span class="note more">+${more} more</span>` : ""}
       ${evs.length ? `<span class="evdot">● ${evs.length}</span>` : ""}
@@ -1470,13 +1488,14 @@ function renderCodeChips() {
 function welcomeIsOff() { try { return localStorage.getItem(LS_KEY + ".welcomeOff") === "1"; } catch (e) { return false; } }
 function bindPhone() {
   $("mnav").addEventListener("click", e => { const b = e.target.closest("button[data-t]"); if (b) setMTab(b.dataset.t); });
+  $("goTeam").addEventListener("click", () => setMTab("more"));
   $("mstrip").addEventListener("click", () => setMTab("bal"));
   $("rCodeChips").addEventListener("click", e => {
     const b = e.target.closest("button[data-code]"); if (!b) return;
     $("rCode").value = b.dataset.code; $("rCode").dispatchEvent(new Event("change", { bubbles: true })); renderCodeChips();
   });
   $("rCode").addEventListener("change", renderCodeChips);
-  $("welcomeOff").addEventListener("click", () => { try { localStorage.setItem(LS_KEY + ".welcomeOff", "1"); } catch (e) {} $("welcome").hidden = true; });
+  $("welcomeOff").addEventListener("click", () => { try { localStorage.setItem(LS_KEY + ".welcomeOff", "1"); } catch (e) {} $("welcome").hidden = true; $("noTeam").hidden = state.assignments.length > 0; });
   // swipe left / right on the calendar to change month
   let sx = null, sy = 0;
   const cal = $("cal");
