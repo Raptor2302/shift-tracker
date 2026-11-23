@@ -405,7 +405,8 @@ details.panel[open]>summary::after{content:"–"}
         <div class="pbody">
           <div class="list" id="teamList"></div>
           <div class="mrow"><button class="btn sm" id="addTeam" type="button">+ Add date range</button></div>
-          <p class="hint">Your first range also runs backwards, so earlier dates follow the same rotation. If ranges overlap, the one lower in the list wins. Anchors: A 24 Nov 2026 M, B 25 Nov, C 23 Nov, D 22 Nov.</p>
+          <label class="check" for="s-backfill"><input type="checkbox" id="s-backfill">Fill in dates before my first range with the same rotation</label>
+          <p class="hint">With the box ticked, earlier dates follow the same rotation; unticked, they stay blank. If ranges overlap, the one lower in the list wins. Anchors: A 24 Nov 2026 M, B 25 Nov, C 23 Nov, D 22 Nov.</p>
         </div>
       </details>
 
@@ -595,7 +596,7 @@ const r2 = x => Math.round(x * 100) / 100;
 function teamOn(d) {
   let t = null, first = null;
   for (const a of state.assignments) { if (a.start && a.end && a.start <= d && d <= a.end) t = a.team; if (a.start && (!first || a.start < first.start)) first = a; }
-  if (!t && first && d < first.start) t = first.team;   // backdated: the rotation runs back from the first range
+  if (!t && first && d < first.start && state.settings.backfill !== false) t = first.team;   // backdated: the rotation runs back from the first range
   return t;
 }
 function schedShift(team, d) { if (!team || !ANCHORS[team]) return null; const k = (((dn(d) - dn(ANCHORS[team])) % 4) + 4) % 4; return CYCLE[k]; }
@@ -1090,7 +1091,7 @@ function renderSettings() {
   const bd = state.settings.birthday || "";
   if (document.activeElement !== $("s-bday-d")) $("s-bday-d").value = bd ? +bd.slice(3) : "";
   $("s-bday-m").value = bd ? bd.slice(0, 2) : "";
-  $("s-med").value = state.settings.medWeight; $("s-oil").checked = !!state.settings.oilFirst; $("s-carry").checked = state.settings.carryXmas !== false;
+  $("s-med").value = state.settings.medWeight; $("s-oil").checked = !!state.settings.oilFirst; $("s-carry").checked = state.settings.carryXmas !== false; $("s-backfill").checked = state.settings.backfill !== false;
 }
 function renderTeams() {
   $("teamList").innerHTML = `<div class="lrow hint"><span>From</span><span>To</span><span>Team</span><span></span></div>` +
@@ -1431,6 +1432,7 @@ function bind() {
   };
   $("s-bday-d").addEventListener("change", setBday); $("s-bday-m").addEventListener("change", setBday);
   $("s-med").addEventListener("change",e => { state.settings.medWeight = num(e.target.value, 0); save(); render(); });
+  $("s-backfill").addEventListener("change", e => { state.settings.backfill = e.target.checked; save(); render(); });
   $("s-carry").addEventListener("change", e => { state.settings.carryXmas = e.target.checked; save(); render(); });
   $("s-oil").addEventListener("change", e => { state.settings.oilFirst = e.target.checked; save(); render(); });
 
