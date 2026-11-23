@@ -375,6 +375,7 @@ details.panel[open]>summary::after{content:"–"}
             <label for="b-hl">Hospitalisation (HL)<input type="number" step="0.5" min="0" id="b-hl"></label>
             <label for="b-fcl">Family care (FCL)<input type="number" step="0.5" min="0" id="b-fcl"></label>
             <label for="b-bdl">Birthday leave<input type="number" step="0.5" min="0" id="b-bdl"></label>
+            <label for="b-xhl">Extended HL<input type="number" step="0.5" min="0" id="b-xhl"></label>
           </div>
           <div class="mrow"><button class="btn sm" id="resetQuotas" type="button">Reset quotas to defaults</button></div>
           <span class="lbl2">Starting point (optional)</span>
@@ -450,6 +451,7 @@ details.panel[open]>summary::after{content:"–"}
             <label for="d-hl">HL<input type="number" step="0.5" min="0" id="d-hl"></label>
             <label for="d-fcl">FCL<input type="number" step="0.5" min="0" id="d-fcl"></label>
             <label for="d-bdl">Birthday leave<input type="number" step="0.5" min="0" id="d-bdl"></label>
+            <label for="d-xhl">Extended HL<input type="number" step="0.5" min="0" id="d-xhl"></label>
           </div>
           <div class="g2">
             <label for="s-bday-d">My birthday · day<input type="number" id="s-bday-d" min="1" max="31" placeholder="15"></label>
@@ -458,6 +460,7 @@ details.panel[open]>summary::after{content:"–"}
           <p class="hint">Shows on the calendar every year.</p>
           <label for="s-med">Med appointment counts as (days, on a working shift)<input type="number" step="0.25" min="0" id="s-med"></label>
           <label class="check" for="s-carry"><input type="checkbox" id="s-carry">Unused OIL can be used the next year</label>
+          <label class="check" for="s-hlx"><input type="checkbox" id="s-hlx">When HL runs out, use the MC pool (MC + MC w/o), then Extended HL</label>
           <label class="check" for="s-oil"><input type="checkbox" id="s-oil">OIL leave uses unlocked OIL before brought-forward leave</label>
           <p class="hint">Unticked follows the standard order for OIL too: brought forward, then OIL, then this year's leave.</p>
           <div class="status-line" id="saveStatus"></div>
@@ -596,7 +599,7 @@ function defaultState() {
     holidays: PH_SEED.map(([date, name]) => ({ date, name })),
     days: {},
     years: {},
-    defaults: { fcl: 2, mc: 14, hl: 45, bdl: 1 },
+    defaults: { fcl: 2, mc: 14, hl: 45, bdl: 1, xhl: 0 },
     settings: { medWeight: 0, oilFirst: false },
     customLeave: [],
     spans: [],
@@ -620,7 +623,7 @@ function dayInfo(d) {
   const eff = rec.shift || sched;
   return { team, sched, eff, rec, working: eff === "M" || eff === "N" };
 }
-function getYear(y) { return state.years[y] || { bf: 0, al: 0, ...state.defaults, _new: true }; }
+function getYear(y) { const v = state.years[y] || { bf: 0, al: 0, ...state.defaults, _new: true }; return v.xhl === undefined ? { ...v, xhl: +state.defaults.xhl || 0 } : v; }
 function phsOfYear(y) { return state.holidays.filter(h => h.date.startsWith(y + "-")).map(h => h.date).sort(); }
 
 // Unused OIL from last year can still be used this year (setting on by default).
@@ -668,7 +671,7 @@ function computeYear(y) {
     return parts;
   };
   let bf = cp ? (+cp.bf || 0) : (+yb.bf || 0), al = cp ? (+cp.al || 0) : (+yb.al || 0), oilUsed = 0;
-  const used = { hl: 0, fcl: 0, bdl: 0, mc: 0 }, mcSplit = { MC: 0, MCW: 0 }, wf = { bf: 0, oil: 0, al: 0 };
+  const used = { hl: 0, fcl: 0, bdl: 0, mc: 0, xhl: 0 }, mcSplit = { MC: 0, MCW: 0 }, wf = { bf: 0, oil: 0, al: 0 };
   const counts = {}; Object.keys(LEAVE).forEach(k => counts[k] = 0);
   let medDays = 0; const per = {};
   const dates = Object.keys(state.days).filter(d => d.startsWith(y + "-") && LEAVE[state.days[d].status]).sort();
@@ -699,6 +702,11 @@ function computeYear(y) {
           else { al -= r; br.al += r; r = 0; }
         }
         wf.bf += br.bf; wf.oil += br.oil; wf.al += br.al;
+      } else if (def.pool === "hl" && state.settings.hlOverflow !== false) {
+        // HL first; when it runs out, the MC pool (MC + MC w/o); then Extended HL
+        const a = Math.min(w, Math.max(0, (+yb.hl || 0) - used.hl)), b = Math.min(w - a, Math.max(0, (+yb.mc || 0) - used.mc)), x = r2(w - a - b);
+        used.hl += a; used.mc += b; used.xhl += x; br.pool = w; br.pools = {};
+        if (a) br.pools.hl = r2(a); if (b) br.pools.mc = r2(b); if (x) br.pools.xhl = x;
       } else if (def.pool) { used[def.pool] = (used[def.pool] || 0) + w; br.pool = w; if (def.pool === "mc") mcSplit[code] += w; }
       else medDays += w;
     }
@@ -771,7 +779,8 @@ function splitTaken(c, x) {
   for (const [d, p] of Object.entries(c.per)) {
     const o = d <= x ? t : b, def = LEAVE[p.code];
     o.bf += p.br.bf; o.oil += p.br.oil; o.al += p.br.al;
-    if (p.br.pool) { o.pools[def.pool] = (o.pools[def.pool] || 0) + p.br.pool; if (def.pool === "mc") o.mc[p.code] += p.br.pool; }
+    if (p.br.pools) { for (const [k, v] of Object.entries(p.br.pools)) o.pools[k] = (o.pools[k] || 0) + v; if (p.br.pools.mc) o.mc.HL = (o.mc.HL || 0) + p.br.pools.mc; }
+    else if (p.br.pool) { o.pools[def.pool] = (o.pools[def.pool] || 0) + p.br.pool; if (def.pool === "mc") o.mc[p.code] += p.br.pool; }
     if (p.code === "MED") o.medDays += p.w;
     o.counts[p.code] = (o.counts[p.code] || 0) + 1;
     if (p.w > 0) o.days += p.w;
@@ -843,7 +852,7 @@ function normalise(s) {
   }
   if (s.years && typeof s.years === "object") for (const [k, v] of Object.entries(s.years)) {
     if (!/^\d{4}$/.test(k) || !v) continue;
-    out.years[k] = { bf: +v.bf || 0, al: +v.al || 0, fcl: num(v.fcl, out.defaults.fcl), mc: num(v.mc, out.defaults.mc), hl: num(v.hl, out.defaults.hl), bdl: num(v.bdl, out.defaults.bdl) };
+    out.years[k] = { bf: +v.bf || 0, al: +v.al || 0, fcl: num(v.fcl, out.defaults.fcl), mc: num(v.mc, out.defaults.mc), hl: num(v.hl, out.defaults.hl), bdl: num(v.bdl, out.defaults.bdl), xhl: num(v.xhl, out.defaults.xhl || 0) };
     if (v.cp && /^\d{4}-\d{2}-\d{2}$/.test(v.cp.date)) {
       out.years[k].cp = { date: v.cp.date, oil: num(v.cp.oil, 0), al: num(v.cp.al, 0), bf: num(v.cp.bf, 0) };
       if (Array.isArray(v.cp.oilFrom)) out.years[k].cp.oilFrom = v.cp.oilFrom.filter(x => /^\d{4}-\d{2}-\d{2}$/.test(x));
@@ -947,7 +956,8 @@ function renderLog() {
     if (p.br.bf) parts.push(`BF ${fmtN(p.br.bf)}`);
     if (p.br.oil) parts.push(`OIL ${fmtN(p.br.oil)}`);
     if (p.br.al) parts.push(`This year ${fmtN(p.br.al)}`);
-    if (p.br.pool) { const pl = LEAVE[p.code].pool; parts.push(`${pl.startsWith("x:") ? esc(LEAVE[p.code].name) : pl.toUpperCase()} ${fmtN(p.br.pool)}`); }
+    if (p.br.pools) for (const [k, v] of Object.entries(p.br.pools)) parts.push(`${({ hl: "HL", mc: "MC pool", xhl: "Extended HL" })[k]} ${fmtN(v)}`);
+    else if (p.br.pool) { const pl = LEAVE[p.code].pool; parts.push(`${pl.startsWith("x:") ? esc(LEAVE[p.code].name) : pl.toUpperCase()} ${fmtN(p.br.pool)}`); }
     return parts.join(" · ") || (p.working ? "Not deducted" : "Off day, not deducted");
   };
   const totals = {};
@@ -980,6 +990,7 @@ function showRemain(y, why) {
     ["Hospitalisation (HL)", r2(yb.hl - P(t, "hl")), r2(yb.hl - P(t, "hl") - P(b, "hl"))],
     ["Family care (FCL)", r2(yb.fcl - P(t, "fcl")), r2(yb.fcl - P(t, "fcl") - P(b, "fcl"))],
     ["Birthday leave", r2(yb.bdl - P(t, "bdl")), r2(yb.bdl - P(t, "bdl") - P(b, "bdl"))],
+    ...(state.settings.hlOverflow !== false ? [["Extended HL", r2((+yb.xhl || 0) - P(t, "xhl")), r2((+yb.xhl || 0) - P(t, "xhl") - P(b, "xhl"))]] : []),
   ];
   for (const cl of state.customLeave) { const def = LEAVE[cl.code]; if (def && def.pool && def.pool !== "wf") rows.push([cl.name, r2(cl.quota - P(t, def.pool)), r2(cl.quota - P(t, def.pool) - P(b, def.pool))]); }
   $("remainTitle").textContent = "Remaining leave · " + y;
@@ -1023,9 +1034,9 @@ function renderDash() {
     card("OIL available on " + asOfShort, `${fmtN(avail)} <small>unlocked</small>`,
       `${fmtN(r2(t.oil))} taken${b.oil > 0 ? ` · ${fmtN(r2(b.oil))} booked ahead` : ""} · ${locked} PH still locked · ${c.phs.length} PH OIL in ${y}${c.carried.length ? ` · ${c.carried.map(u => oilName(u.key, true)).join(", ")} ${fmtN(c.carried.reduce((s, u) => s + u.left, 0))}d carried in` : ""}${cpTxt}`, avail < 0) +
     card("This year's leave left", `${fmtN(alNow)} <small>/ ${fmtN(c.alStart)}</small>`, `${fmtN(r2(t.al))} taken${bk(b.al, alNow - b.al)}${cpTxt}`, alNow < 0) +
-    card("MC pool left (MC + MC w/o)", `${fmtN(mcNow)} <small>/ ${fmtN(yb.mc)}</small>`, `MC ${fmtN(t.mc.MC)} · MC w/o ${fmtN(t.mc.MCW)} taken${bk(P(b, "mc"), mcNow - P(b, "mc"))}`, mcNow < 0) +
+    card("MC pool left (MC + MC w/o)", `${fmtN(mcNow)} <small>/ ${fmtN(yb.mc)}</small>`, `MC ${fmtN(t.mc.MC)} · MC w/o ${fmtN(t.mc.MCW)}${t.mc.HL ? ` · HL ${fmtN(t.mc.HL)}` : ""} taken${bk(P(b, "mc"), mcNow - P(b, "mc"))}`, mcNow < 0) +
     `<div class="card"><span class="lbl">Other leave left</span><div class="minis">
-      ${mini(hlNow, yb.hl, "HL", P(b, "hl"))}${mini(fclNow, yb.fcl, "FCL", P(b, "fcl"))}${mini(bdlNow, yb.bdl, "Birthday", P(b, "bdl"))}${
+      ${mini(hlNow, yb.hl, "HL", P(b, "hl"))}${mini(fclNow, yb.fcl, "FCL", P(b, "fcl"))}${mini(bdlNow, yb.bdl, "Birthday", P(b, "bdl"))}${state.settings.hlOverflow !== false ? mini(r2((+yb.xhl || 0) - P(t, "xhl")), +yb.xhl || 0, "Ext HL", P(b, "xhl")) : ""}${
       // leave types you added go in this card too
       state.customLeave.map(cl => {
         const def = LEAVE[cl.code], own = def.pool && def.pool !== "wf", tn = t.counts[cl.code] || 0, bn = b.counts[cl.code] || 0;
@@ -1118,18 +1129,18 @@ function renderCal() {
 function renderBalances() {
   const y = ui.year, yb = getYear(y);
   $("balYear").textContent = y;
-  for (const k of ["bf", "al", "mc", "hl", "fcl", "bdl"]) { const el = $("b-" + k); if (document.activeElement !== el) el.value = yb[k]; }
+  for (const k of ["bf", "al", "mc", "hl", "fcl", "bdl", "xhl"]) { const el = $("b-" + k); if (document.activeElement !== el) el.value = yb[k]; }
   const cp = yb.cp || {};
   $("cp-date").value = cp.date || ""; $("cp-oil").value = cp.date ? cp.oil : ""; $("cp-al").value = cp.date ? cp.al : ""; $("cp-bf").value = cp.date ? cp.bf : "";
   $("cp-date").min = y + "-01-01"; $("cp-date").max = y + "-12-31";
   $("cpClear").hidden = !cp.date;
 }
 function renderSettings() {
-  for (const k of ["mc", "hl", "fcl", "bdl"]) { const el = $("d-" + k); if (document.activeElement !== el) el.value = state.defaults[k]; }
+  for (const k of ["mc", "hl", "fcl", "bdl", "xhl"]) { const el = $("d-" + k); if (document.activeElement !== el) el.value = state.defaults[k]; }
   const bd = state.settings.birthday || "";
   if (document.activeElement !== $("s-bday-d")) $("s-bday-d").value = bd ? +bd.slice(3) : "";
   $("s-bday-m").value = bd ? bd.slice(0, 2) : "";
-  $("s-med").value = state.settings.medWeight; $("s-oil").checked = !!state.settings.oilFirst; $("s-carry").checked = state.settings.carryXmas !== false; $("s-backfill").checked = state.settings.backfill !== false;
+  $("s-med").value = state.settings.medWeight; $("s-oil").checked = !!state.settings.oilFirst; $("s-carry").checked = state.settings.carryXmas !== false; $("s-backfill").checked = state.settings.backfill !== false; $("s-hlx").checked = state.settings.hlOverflow !== false; $("b-xhl").closest("label").hidden = $("d-xhl").closest("label").hidden = state.settings.hlOverflow === false;
 }
 function renderTeams() {
   $("teamList").innerHTML = `<div class="lrow hint"><span>From</span><span>To</span><span>Team</span><span></span></div>` +
@@ -1155,7 +1166,7 @@ function poolText(code) {
   const def = LEAVE[code];
   if (code === "MC" || code === "MCW") return "the shared MC pool (MC + MC w/o)";
   if (def.pool === "wf") return "annual leave (brought forward → OIL → this year)";
-  if (def.pool === "hl") return "the HL pool"; if (def.pool === "fcl") return "the FCL pool"; if (def.pool === "bdl") return "the Birthday Leave pool";
+  if (def.pool === "hl") return state.settings.hlOverflow !== false ? "HL (then the MC pool, then Extended HL)" : "the HL pool"; if (def.pool === "fcl") return "the FCL pool"; if (def.pool === "bdl") return "the Birthday Leave pool";
   if (def.pool && def.pool.startsWith("x:")) return `your ${def.name} quota`;
   return null;
 }
@@ -1238,7 +1249,8 @@ function renderBreak() {
     rows.push(["Unlocked OIL before this day", fmtN(p.br.oilAvail)]);
     if (p.br.bfSkipped) rows.push(["Brought forward left aside", fmtN(p.br.bfSkipped) + " (too little for a whole shift, so OIL was used)"]);
     rows.push(["From brought forward", fmtN(p.br.bf)], ["From unlocked OIL", fmtN(p.br.oil) + (p.br.oilFrom && p.br.oilFrom.length ? " · " + esc(oilPartsText(p.br.oilFrom, true)) : "")], ["From this year's leave", fmtN(p.br.al)]);
-  } else if (p.br.pool) rows.push(["From pool", LEAVE[p.code].pool.toUpperCase() + " " + fmtN(p.br.pool)]);
+  } else if (p.br.pools) rows.push(["Taken from", Object.entries(p.br.pools).map(([k, v]) => ({ hl: "HL", mc: "MC pool (HL ran out)", xhl: "Extended HL" })[k] + " " + fmtN(v)).join(" · ") || "—"]);
+  else if (p.br.pool) rows.push(["From pool", LEAVE[p.code].pool.toUpperCase() + " " + fmtN(p.br.pool)]);
   $("mBreak").innerHTML = rows.map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join("");
 }
 function closeDay() { $("dayModal").hidden = true; const d = ui.editing; ui.editing = null; const b = d && document.querySelector(`.cell[data-d="${d}"]`); if (b) b.focus(); }
@@ -1447,7 +1459,7 @@ function bind() {
   $("wStart").addEventListener("change", e => { if (!$("wEnd").value || $("wEnd").value < e.target.value) { $("wEnd").value = e.target.value; renderRangePreview(); renderCal(); } });
   $("rStart").addEventListener("change", e => { if (!$("rEnd").value || $("rEnd").value < e.target.value) { $("rEnd").value = e.target.value; renderRangePreview(); renderRangeOil(); renderCal(); } });
 
-  for (const k of ["bf", "al", "mc", "hl", "fcl", "bdl"]) $("b-" + k).addEventListener("change", e => {
+  for (const k of ["bf", "al", "mc", "hl", "fcl", "bdl", "xhl"]) $("b-" + k).addEventListener("change", e => {
     const y = ui.year, cur = getYear(y); delete cur._new;
     state.years[y] = { ...cur, [k]: num(e.target.value, 0) }; save(); renderDash(); renderCal();
   });
@@ -1465,7 +1477,7 @@ function bind() {
     state.years[y] = cur; save(); render(); toast("Starting point removed");
   };
   $("resetQuotas").onclick =() => { const y = ui.year, cur = getYear(y); delete cur._new; state.years[y] = { ...cur, ...state.defaults }; save(); render(); toast(`${y} quotas reset to defaults`); };
-  for (const k of ["mc", "hl", "fcl", "bdl"]) $("d-" + k).addEventListener("change", e => { state.defaults[k] = num(e.target.value, 0); save(); render(); });
+  for (const k of ["mc", "hl", "fcl", "bdl", "xhl"]) $("d-" + k).addEventListener("change", e => { state.defaults[k] = num(e.target.value, 0); save(); render(); });
   $("s-bday-m").innerHTML = `<option value="">—</option>` + ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"].map((m, i) => `<option value="${String(i + 1).padStart(2, "0")}">${m}</option>`).join("");
   const setBday = () => {
     const dd = parseInt($("s-bday-d").value, 10), mm = $("s-bday-m").value;
@@ -1475,6 +1487,7 @@ function bind() {
   };
   $("s-bday-d").addEventListener("change", setBday); $("s-bday-m").addEventListener("change", setBday);
   $("s-med").addEventListener("change",e => { state.settings.medWeight = num(e.target.value, 0); save(); render(); });
+  $("s-hlx").addEventListener("change", e => { state.settings.hlOverflow = e.target.checked; save(); render(); });
   $("s-backfill").addEventListener("change", e => { state.settings.backfill = e.target.checked; save(); render(); });
   $("s-carry").addEventListener("change", e => { state.settings.carryXmas = e.target.checked; save(); render(); });
   $("s-oil").addEventListener("change", e => { state.settings.oilFirst = e.target.checked; save(); render(); });
