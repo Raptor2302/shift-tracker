@@ -1,0 +1,1389 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"></head><body>
+<title>Shift &amp; Leave Tracker</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap">
+<style>
+/* Layout: summary counters on top, month roster grid on the left, tool panels on the right (stacks on phones). */
+:root{
+  --bg:#eef1f4;--surface:#ffffff;--surface2:#f4f6f8;--text:#141a21;--muted:#5a6573;--border:#d8dee5;
+  --accent:#0b5cad;--accent-ink:#ffffff;
+  --m-bg:#fff3cf;--m-ink:#7a5200;--n-bg:#e1e5fb;--n-ink:#2e3a9e;--off-bg:#edf0f3;--off-ink:#6b7684;
+  --ph:#c62828;--ph-ink:#ffffff;--neg:#b42318;--ok:#17703a;--today:#0b5cad;--overlay:rgba(10,15,20,.5);
+  --font:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,Consolas,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0f1318;--surface:#171c23;--surface2:#1f252e;--text:#e8edf2;--muted:#98a3b1;--border:#2b333e;
+  --accent:#5aa6f0;--accent-ink:#06182b;
+  --m-bg:#3a2d0c;--m-ink:#f6cf6a;--n-bg:#232850;--n-ink:#c2c8fa;--off-bg:#1c2129;--off-ink:#8a95a3;
+  --ph:#ef5350;--ph-ink:#ffffff;--neg:#f97066;--ok:#4ade80;--today:#5aa6f0;--overlay:rgba(0,0,0,.6);color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0f1318;--surface:#171c23;--surface2:#1f252e;--text:#e8edf2;--muted:#98a3b1;--border:#2b333e;
+  --accent:#5aa6f0;--accent-ink:#06182b;
+  --m-bg:#3a2d0c;--m-ink:#f6cf6a;--n-bg:#232850;--n-ink:#c2c8fa;--off-bg:#1c2129;--off-ink:#8a95a3;
+  --ph:#ef5350;--ph-ink:#ffffff;--neg:#f97066;--ok:#4ade80;--today:#5aa6f0;--overlay:rgba(0,0,0,.6);color-scheme:dark}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{margin:0;background:var(--bg);color:var(--text);font:14px/1.45 var(--font)}
+.wrap{max-width:1400px;margin:0 auto;padding-block:20px 56px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+button,select,input,textarea{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+header.top{display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end;justify-content:space-between;margin-bottom:16px}
+h1{font-size:22px;margin:0;letter-spacing:-.01em}
+.subtitle{color:var(--muted);font-size:13px}
+.controls{display:flex;flex-wrap:wrap;gap:8px;align-items:flex-end}
+.btn{border:1px solid var(--border);background:var(--surface);padding:7px 12px;border-radius:9px;cursor:pointer;min-height:36px;font-weight:500}
+.btn:hover{background:var(--surface2)}
+.btn.primary{background:var(--accent);color:var(--accent-ink);border-color:transparent;font-weight:600}
+.btn.danger{color:var(--neg)}
+.btn.sm{padding:4px 9px;min-height:30px;font-size:13px}
+input,select,textarea{border:1px solid var(--border);background:var(--surface);border-radius:8px;padding:6px 8px;min-height:36px;min-width:0}
+textarea{min-height:64px;resize:vertical;width:100%}
+label{display:flex;flex-direction:column;gap:3px;font-size:12px;color:var(--muted);font-weight:600;min-width:0}
+label input,label select{color:var(--text);font-weight:400;font-size:14px}
+.status-line{font-size:12px;color:var(--muted)}
+.banner{background:var(--m-bg);color:var(--m-ink);border-radius:10px;padding:10px 12px;margin-bottom:14px;font-size:13px}
+.dash{display:grid;grid-template-columns:repeat(auto-fill,minmax(205px,1fr));gap:10px;margin-bottom:16px}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:12px 14px;display:flex;flex-direction:column;gap:2px;min-width:0}
+.card .lbl{font-size:11px;color:var(--muted);font-weight:700;letter-spacing:.06em;text-transform:uppercase}
+.card .big{font-size:24px;font-weight:700;font-variant-numeric:tabular-nums;font-family:var(--mono)}
+.card .big small{font-size:13px;color:var(--muted);font-weight:500}
+.card .sub{font-size:12px;color:var(--muted)}
+.minis{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:4px}
+.minis div{display:flex;flex-direction:column}
+.minis b{font-family:var(--mono);font-size:17px;font-variant-numeric:tabular-nums}
+.minis span{font-size:11px;color:var(--muted)}
+.neg{color:var(--neg)!important}
+.layout{display:grid;grid-template-columns:minmax(0,1fr) 370px;gap:16px;align-items:start}
+@media(max-width:1020px){.layout{grid-template-columns:minmax(0,1fr)}}
+.calbox{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:14px;min-width:0}
+.cal-head{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap}
+.cal-head h2{margin:0;font-size:18px}
+.cal{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:5px;--cellpad:5px}
+.cell .crow.top{height:18px;flex-shrink:0}
+.lanes{display:block;flex-shrink:0}
+.sbar{position:relative;z-index:1;align-self:start;height:16px;line-height:16px;font-size:11px;font-weight:600;color:var(--text);padding:0 6px;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;pointer-events:none;border:0 solid transparent}
+.sbar.s0{margin-left:5px;border-left-width:3px;border-radius:4px 0 0 4px}
+.sbar.s1{margin-right:5px;border-radius:0 4px 4px 0}
+.sbar.s0.s1{border-radius:4px}
+.dow{font-size:11px;color:var(--muted);text-align:center;font-weight:700;letter-spacing:.06em;padding:2px 0}
+.cell{min-height:98px;border-radius:9px;border:1px solid transparent;padding:var(--cellpad) 6px;text-align:left;cursor:pointer;display:flex;flex-direction:column;gap:2px;background:var(--surface2);min-width:0;overflow:hidden}
+.cell:hover{border-color:var(--accent)}
+.cell.m{background:var(--m-bg)}.cell.n{background:var(--n-bg)}.cell.off{background:var(--off-bg)}
+.cell.out{opacity:.42}
+.cell.today{box-shadow:inset 0 0 0 2px var(--today)}
+.cell.sel{box-shadow:inset 0 0 0 2px var(--accent);border-style:dashed;border-color:var(--accent)}
+.crow{display:flex;justify-content:space-between;align-items:center;gap:3px;min-width:0}
+.dnum{font-weight:700;font-variant-numeric:tabular-nums}
+.team{font-size:10px;font-weight:700;border:1px solid var(--border);border-radius:5px;padding:0 4px;color:var(--muted);background:var(--surface)}
+.shift{font-weight:700;font-size:13px;font-family:var(--mono)}
+.cell.m .shift{color:var(--m-ink)}.cell.n .shift{color:var(--n-ink)}.cell.off .shift{color:var(--off-ink)}
+.ovr{font-size:10px;color:var(--muted);font-weight:600}
+.ph{font-size:10px;font-weight:700;color:var(--ph-ink);background:var(--ph);border-radius:5px;padding:1px 5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;align-self:flex-start}
+.tag{font-size:11px;font-weight:700;border-radius:5px;padding:0 5px;white-space:nowrap}
+.wt{font-size:11px;font-weight:600;font-family:var(--mono);font-variant-numeric:tabular-nums}
+.note{font-size:11px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ev{font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--text);background:var(--surface);border-radius:4px;padding:0 4px}
+.ev b{font-family:var(--mono);font-weight:600;color:var(--muted)}
+.g-ev{display:grid;grid-template-columns:110px minmax(0,1fr) 34px;gap:6px;align-items:end}
+.panel .g-ev{grid-template-columns:110px minmax(0,1fr)}
+.evbox{display:flex;flex-direction:column;gap:6px}
+.lbl2{font-size:12px;color:var(--muted);font-weight:600}
+.erow{display:grid;grid-template-columns:minmax(0,1fr) 34px;gap:6px;align-items:center;font-size:13px;background:var(--surface2);border-radius:8px;padding:4px 4px 4px 10px}
+.clrow{display:grid;grid-template-columns:auto minmax(0,1fr) 34px;gap:8px;align-items:center;font-size:13px}
+.iconbtn.add{color:var(--accent)}
+.spn{font-size:11px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin:0 -7px;padding:0 7px;border:0 solid transparent;min-height:16px}
+.spn.s0{margin-left:0;padding-left:4px;border-left-width:3px;border-radius:4px 0 0 4px}
+.spn.s1{margin-right:0;border-radius:0 4px 4px 0}
+.spn.s0.s1{border-radius:4px}
+.sprow{display:grid;grid-template-columns:14px minmax(0,1fr) auto 34px;gap:8px;align-items:center;font-size:13px}
+.sprow i{width:12px;height:12px;border-radius:3px;display:inline-block}
+.logbox{margin-top:16px}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px}
+.chip{display:inline-flex;align-items:center;gap:6px;background:var(--surface2);border-radius:999px;padding:4px 10px 4px 4px;font-size:12px}
+.chip b{font-family:var(--mono)}
+.tablewrap{overflow-x:auto}
+table.log{width:100%;border-collapse:collapse;font-size:13px;min-width:720px}
+table.log th{text-align:left;font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);padding:6px 8px;border-bottom:1px solid var(--border)}
+table.log td{padding:7px 8px;border-bottom:1px solid var(--border);vertical-align:top}
+table.log .num{text-align:right;font-family:var(--mono);font-variant-numeric:tabular-nums}
+table.log tbody tr{cursor:pointer}
+table.log tbody tr:hover{background:var(--surface2)}
+table.log tr.booked td{color:var(--muted)}
+table.log tfoot td{font-weight:700;border-bottom:0}
+.pill{font-size:11px;font-weight:700;border-radius:999px;padding:1px 8px;white-space:nowrap}
+.pill.taken{background:rgba(23,112,58,.15);color:var(--ok)}
+.pill.booked{background:var(--surface2);color:var(--muted);border:1px dashed var(--border)}
+.oilopt{flex-direction:row;align-items:center;gap:8px;font-weight:500;color:var(--text);font-size:13px}
+.oilopt input{min-height:auto}
+.oilopt.dis{color:var(--muted)}
+.mark{font-size:10px;font-weight:700;color:var(--accent);border:1px solid var(--accent);border-radius:5px;padding:0 4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;align-self:flex-start;max-width:100%}
+.mark.bday{color:#d23a80;border-color:#d23a80}
+.cell.flash{box-shadow:inset 0 0 0 3px var(--accent)}
+@media (prefers-reduced-motion:no-preference){.cell.flash{animation:flash 1.2s ease-in-out 2}}
+@keyframes flash{50%{box-shadow:inset 0 0 0 3px transparent}}
+.tabs{display:grid;grid-template-columns:1fr 1fr;gap:4px;background:var(--surface2);border-radius:10px;padding:4px}
+.tabs button{border:0;background:transparent;border-radius:7px;padding:7px 6px;font-weight:600;font-size:13px;cursor:pointer;color:var(--muted);min-height:34px}
+.tabs button[aria-selected="true"]{background:var(--surface);color:var(--text);box-shadow:0 1px 2px rgba(0,0,0,.12)}
+.tabsec{padding:0}
+.seg{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.segopt{flex-direction:row;align-items:center;justify-content:center;gap:6px;border:1px solid var(--border);border-radius:8px;padding:7px;cursor:pointer;color:var(--text);font-size:13px}
+.segopt:has(input:checked){border-color:var(--accent);background:var(--surface2);font-weight:700}
+.segopt input{min-height:auto;margin:0}
+.calc{background:var(--surface2);border-radius:10px;padding:10px 12px;font-size:13px;display:flex;flex-direction:column;gap:8px}
+.calc .big2{font-family:var(--mono);font-size:20px;font-weight:700}
+.calc table{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums}
+.calc th{font-size:11px;color:var(--muted);text-align:left;font-weight:600;padding:2px 0}
+.calc td{padding:3px 0;border-top:1px solid var(--border)}
+.calc td.n,.calc th.n{text-align:right;font-family:var(--mono)}
+.calc .warn{color:var(--neg);font-weight:600}
+.calc .sub2{font-size:12px;color:var(--muted)}
+.oilu{font-size:10px;font-weight:600;color:#0f9a6c;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.welcome{line-height:1.5}.welcome ol{margin:6px 0 6px 18px;padding:0}
+.evdot{display:none;font-size:10px;color:var(--accent);font-weight:700}
+.t-OL{background:rgba(37,99,235,.17);color:#2f6fe0}.t-OVL{background:rgba(8,145,178,.17);color:#0e8fae}
+.t-OIL{background:rgba(5,150,105,.17);color:#0f9a6c}.t-HL{background:rgba(220,38,38,.15);color:#d93434}
+.t-FCL{background:rgba(192,38,211,.15);color:#b52fc6}.t-BDL{background:rgba(219,39,119,.15);color:#d23a80}
+.t-MC{background:rgba(234,88,12,.16);color:#d9670f}.t-MCW{background:rgba(180,120,4,.18);color:#b07a06}
+.t-MED{background:rgba(100,116,139,.2);color:#6b7a90}.t-C{background:rgba(109,40,217,.15);color:#7f4fe0}
+.legend{display:flex;flex-wrap:wrap;gap:6px 12px;margin-top:10px;font-size:12px;color:var(--muted)}
+.legend span{display:inline-flex;align-items:center;gap:5px}
+.sw{width:12px;height:12px;border-radius:3px;display:inline-block;border:1px solid var(--border)}
+@media(max-width:640px){.cal{--cellpad:3px}.cell{min-height:66px;padding:var(--cellpad)}.sbar{font-size:10px;padding:0 3px}.sbar.s0{margin-left:3px}.sbar.s1{margin-right:3px}.note,.team,.ovr,.ev{display:none}.cell .evdot{display:inline}.cal{gap:3px}.ph{font-size:9px;padding:0 3px}.shift{font-size:12px}.tag,.wt{font-size:10px;padding:0 2px}}
+.side{display:flex;flex-direction:column;gap:12px;min-width:0}
+details.panel{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:10px 14px}
+details.panel>summary{font-weight:700;cursor:pointer;padding:4px 0;list-style:none;display:flex;justify-content:space-between}
+details.panel>summary::after{content:"+";color:var(--muted)}
+details.panel[open]>summary::after{content:"–"}
+.pbody{display:flex;flex-direction:column;gap:10px;padding:8px 0 4px}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.g3{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.hint{font-size:12px;color:var(--muted);margin:0}
+.preview{font-size:13px;background:var(--surface2);border-radius:8px;padding:8px 10px;font-family:var(--mono)}
+.list{display:flex;flex-direction:column;gap:6px}
+.lrow{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr) 64px 34px;gap:6px;align-items:center}
+.hrow{display:grid;grid-template-columns:112px minmax(0,1fr) 34px;gap:6px;align-items:center;font-size:13px}
+.hrow .sun{font-size:11px;color:var(--muted)}
+.iconbtn{border:1px solid var(--border);background:var(--surface);border-radius:8px;width:34px;height:34px;cursor:pointer;color:var(--neg)}
+.check{flex-direction:row;align-items:center;gap:8px;font-weight:500;color:var(--text);font-size:13px}
+.check input{min-height:auto}
+.overlay{position:fixed;inset:0;background:var(--overlay);display:flex;align-items:center;justify-content:center;padding:16px;z-index:20}
+.modal{background:var(--surface);border:1px solid var(--border);border-radius:16px;width:100%;max-width:460px;padding:18px;max-height:92vh;overflow:auto;display:flex;flex-direction:column;gap:12px}
+.modal h3{margin:0;font-size:18px}
+.mrow{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap}
+.kv{display:grid;grid-template-columns:auto 1fr;gap:3px 12px;font-size:13px}
+.kv dt{color:var(--muted)}.kv dd{margin:0;font-family:var(--mono)}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(20px + env(safe-area-inset-bottom,0px));background:var(--text);color:var(--bg);padding:9px 16px;border-radius:10px;font-size:13px;z-index:30}
+@media (prefers-reduced-motion:no-preference){.cell{transition:border-color .12s}}
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <div>
+      <h1>Shift &amp; Leave Tracker</h1>
+      <div class="subtitle">4-day cycle · M 8am–8pm · N 8pm–8am · 2 off · Singapore PH &amp; OIL</div>
+      <div class="status-line" id="syncPill" role="status"></div>
+    </div>
+    <div class="controls">
+      <label for="yearSel">Leave year<select id="yearSel"></select></label>
+      <label for="asOf">Balances as of<input type="date" id="asOf"></label>
+      <button class="btn" id="exportJson" type="button">Export JSON</button>
+      <button class="btn" id="exportCsv" type="button">Export CSV</button>
+      <button class="btn" id="importBtn" type="button">Import JSON</button>
+      <input type="file" id="importFile" accept="application/json,.json" hidden>
+    </div>
+  </header>
+  <div id="storageBanner" class="banner" hidden></div>
+  <div id="balBanner" class="banner" hidden></div>
+  <div id="welcome" class="banner welcome" hidden>
+    <b>Welcome! Set up your tracker in three steps:</b>
+    <ol>
+      <li><b>Team rotation</b>: add your team (A, B, C or D) and the dates you're on it. Your shifts then appear on the calendar.</li>
+      <li><b>Balances &amp; entitlements</b>: enter your annual leave, brought-forward days and OIL as of a date (the starting point).</li>
+      <li><b>Settings</b>: add your birthday and check the default quotas.</li>
+    </ol>
+    Everything is saved in this browser only. Use <b>Export JSON</b> to back up or move to another device, and <b>Import JSON</b> to restore.
+  </div>
+
+  <section class="dash" id="dash" aria-label="Summary"></section>
+
+  <div class="layout">
+    <section class="calbox" aria-label="Calendar">
+      <div class="cal-head">
+        <h2 id="monthLabel"></h2>
+        <div class="controls">
+          <button class="btn sm" id="prevM" type="button" aria-label="Previous month">‹ Prev</button>
+          <button class="btn sm" id="todayM" type="button">Today</button>
+          <button class="btn sm" id="nextM" type="button" aria-label="Next month">Next ›</button>
+        </div>
+      </div>
+      <div class="cal" id="cal"></div>
+      <div class="legend">
+        <span><i class="sw" style="background:var(--m-bg)"></i>M Morning</span>
+        <span><i class="sw" style="background:var(--n-bg)"></i>N Night</span>
+        <span><i class="sw" style="background:var(--off-bg)"></i>OFF</span>
+        <span><i class="sw" style="background:var(--ph)"></i>Public holiday</span>
+        <span>✎ manual shift change</span>
+        <span>Click a day to edit it</span>
+      </div>
+    </section>
+
+    <aside class="side">
+      <details class="panel" open>
+        <summary>Apply leave for a date range</summary>
+        <div class="pbody">
+          <div class="tabs" role="tablist" aria-label="Kind of leave">
+            <button type="button" role="tab" id="tabA" aria-controls="secA" aria-selected="true">Specific leave type</button>
+            <button type="button" role="tab" id="tabB" aria-controls="secB" aria-selected="false">Annual leave (OL / OVL)</button>
+          </div>
+
+          <section id="secA" role="tabpanel" aria-labelledby="tabA" class="pbody tabsec">
+            <div class="g2">
+              <label for="rStart">From<input type="date" id="rStart"></label>
+              <label for="rEnd">To<input type="date" id="rEnd"></label>
+            </div>
+            <label for="rCode">Leave / status<select id="rCode"></select></label>
+            <div id="rOilWrap" class="evbox" hidden>
+              <span class="lbl2">Which OIL days? Tick one public holiday for each working shift</span>
+              <div class="list" id="rOilList"></div>
+            </div>
+            <label for="rNote">Notes (optional)<input type="text" id="rNote" placeholder="e.g. Fever, clinic visit"></label>
+            <div class="preview" id="rPreview">Pick a start and end date.</div>
+            <div class="mrow">
+              <button class="btn danger" id="rClear" type="button">Clear leave in range</button>
+              <button class="btn primary" id="rApply" type="button">Apply to range</button>
+            </div>
+            <p class="hint">Only Morning and Night shifts get the leave. Off days are skipped and deduct nothing.</p>
+          </section>
+
+          <section id="secB" role="tabpanel" aria-labelledby="tabB" class="pbody tabsec" hidden>
+            <div class="g2">
+              <label for="wStart">From<input type="date" id="wStart"></label>
+              <label for="wEnd">To<input type="date" id="wEnd"></label>
+            </div>
+            <div class="seg" role="radiogroup" aria-label="Local or overseas">
+              <label class="segopt"><input type="radio" name="wType" id="wOL" value="OL" checked><span>Local · OL</span></label>
+              <label class="segopt"><input type="radio" name="wType" id="wOVL" value="OVL"><span>Overseas · OVL</span></label>
+            </div>
+            <label for="wNote">Notes (optional)<input type="text" id="wNote" placeholder="e.g. Japan trip"></label>
+            <div class="calc" id="wPreview">Pick a start and end date.</div>
+            <div class="mrow">
+              <button class="btn danger" id="wClear" type="button">Clear leave in range</button>
+              <button class="btn primary" id="wApply" type="button">Confirm &amp; apply</button>
+            </div>
+            <p class="hint">1.5 days per working shift. Off days are skipped. Days come from brought-forward leave first, then unlocked OIL, then this year's leave.</p>
+          </section>
+        </div>
+      </details>
+
+      <details class="panel" open>
+        <summary>Balances &amp; entitlements · <span id="balYear"></span></summary>
+        <div class="pbody">
+          <div class="g2">
+            <label for="b-bf">Annual leave brought forward<input type="number" step="0.5" min="0" id="b-bf"></label>
+            <label for="b-al">This year's annual leave<input type="number" step="0.5" min="0" id="b-al"></label>
+          </div>
+          <div class="g2">
+            <label for="b-mc">MC + MC w/o pool<input type="number" step="0.5" min="0" id="b-mc"></label>
+            <label for="b-hl">Hospitalisation (HL)<input type="number" step="0.5" min="0" id="b-hl"></label>
+            <label for="b-fcl">Family care (FCL)<input type="number" step="0.5" min="0" id="b-fcl"></label>
+            <label for="b-bdl">Birthday leave<input type="number" step="0.5" min="0" id="b-bdl"></label>
+          </div>
+          <div class="mrow"><button class="btn sm" id="resetQuotas" type="button">Reset quotas to defaults</button></div>
+          <span class="lbl2">Starting point (optional)</span>
+          <p class="hint">Use this if you already took leave this year before using the tracker. Enter what you had left on a date. The tracker counts on from there and ignores annual leave and OIL tagged before it.</p>
+          <div class="g2">
+            <label for="cp-date">As of<input type="date" id="cp-date"></label>
+            <label for="cp-oil">OIL available<input type="number" step="0.5" min="0" id="cp-oil"></label>
+            <label for="cp-al">This year's leave left<input type="number" step="0.5" id="cp-al"></label>
+            <label for="cp-bf">Brought forward left<input type="number" step="0.5" min="0" id="cp-bf"></label>
+          </div>
+          <div class="mrow"><button class="btn sm danger" id="cpClear" type="button">Remove starting point</button><button class="btn sm primary" id="cpSave" type="button">Save starting point</button></div>
+          <p class="hint">Each year keeps its own figures. OL, OVL and OIL come off brought-forward leave first, then unlocked OIL, then this year's leave.</p>
+        </div>
+      </details>
+
+      <details class="panel" open id="spPanel">
+        <summary>Multi-day events</summary>
+        <div class="pbody">
+          <label for="sp-title">Event<input type="text" id="sp-title" placeholder="e.g. Japan trip, Training week"></label>
+          <div class="g2">
+            <label for="sp-start">From<input type="date" id="sp-start"></label>
+            <label for="sp-end">To<input type="date" id="sp-end"></label>
+            <label for="sp-time">Time (optional)<input type="time" id="sp-time"></label>
+            <label for="sp-color">Colour<input type="color" id="sp-color" value="#7c3aed"></label>
+          </div>
+          <div class="mrow">
+            <button class="btn sm" id="spCancel" type="button" hidden>Cancel edit</button>
+            <button class="btn primary sm" id="spSave" type="button">Add event</button>
+          </div>
+          <div class="list" id="spList"></div>
+          <p class="hint">These go on top of your shifts and leave, and deduct nothing. Overlapping events are fine.</p>
+        </div>
+      </details>
+
+
+      <details class="panel">
+        <summary>My team rotation</summary>
+        <div class="pbody">
+          <div class="list" id="teamList"></div>
+          <div class="mrow"><button class="btn sm" id="addTeam" type="button">+ Add date range</button></div>
+          <p class="hint">If ranges overlap, the one lower in the list wins. Anchors: A 24 Nov 2026 M, B 25 Nov, C 23 Nov, D 22 Nov.</p>
+        </div>
+      </details>
+
+      <details class="panel">
+        <summary>My leave types</summary>
+        <div class="pbody">
+          <div class="list" id="clList"></div>
+          <div class="g2">
+            <label for="cl-code">Short code<input type="text" id="cl-code" maxlength="6" placeholder="e.g. CCL"></label>
+            <label for="cl-name">Name<input type="text" id="cl-name" placeholder="e.g. Childcare Leave"></label>
+            <label for="cl-w">Days deducted per working shift<input type="number" id="cl-w" step="0.25" min="0" value="1"></label>
+            <label for="cl-pool">Comes out of<select id="cl-pool">
+              <option value="own">Its own yearly quota</option>
+              <option value="wf">Annual leave (BF → OIL → this year)</option>
+              <option value="none">Nothing, just track it</option>
+            </select></label>
+            <label for="cl-quota">Yearly quota (days)<input type="number" id="cl-quota" step="0.5" min="0" value="6"></label>
+            <label for="cl-color">Colour<input type="color" id="cl-color" value="#0ea5e9"></label>
+          </div>
+          <div class="mrow"><button class="btn primary sm" id="clAdd" type="button">Add leave type</button></div>
+          <p class="hint">New types appear in the day editor and the range picker. Like the built-in ones, they deduct nothing on off days.</p>
+        </div>
+      </details>
+
+      <details class="panel">
+        <summary>Settings</summary>
+        <div class="pbody">
+          <p class="hint">Default quotas for each new year:</p>
+          <div class="g2">
+            <label for="d-mc">MC + MC w/o<input type="number" step="0.5" min="0" id="d-mc"></label>
+            <label for="d-hl">HL<input type="number" step="0.5" min="0" id="d-hl"></label>
+            <label for="d-fcl">FCL<input type="number" step="0.5" min="0" id="d-fcl"></label>
+            <label for="d-bdl">Birthday leave<input type="number" step="0.5" min="0" id="d-bdl"></label>
+          </div>
+          <div class="g2">
+            <label for="s-bday-d">My birthday · day<input type="number" id="s-bday-d" min="1" max="31" placeholder="15"></label>
+            <label for="s-bday-m">Month<select id="s-bday-m"><option value="">—</option></select></label>
+          </div>
+          <p class="hint">Shows on the calendar every year.</p>
+          <label for="s-med">Med appointment counts as (days, on a working shift)<input type="number" step="0.25" min="0" id="s-med"></label>
+          <label class="check" for="s-carry"><input type="checkbox" id="s-carry">Unused Christmas OIL can be used the next year</label>
+          <label class="check" for="s-oil"><input type="checkbox" id="s-oil">OIL leave uses unlocked OIL before brought-forward leave</label>
+          <p class="hint">Unticked follows the standard order for OIL too: brought forward, then OIL, then this year's leave.</p>
+          <div class="status-line" id="saveStatus"></div>
+        </div>
+      </details>
+    </aside>
+  </div>
+
+  <section class="calbox logbox" aria-labelledby="logTitle">
+    <div class="cal-head">
+      <h2 id="logTitle">Leave log</h2>
+      <div class="controls">
+        <label for="logType">Leave type<select id="logType"></select></label>
+        <label for="logShow">Show<select id="logShow">
+          <option value="taken">Taken so far</option>
+          <option value="all">Taken and booked</option>
+          <option value="booked">Booked ahead</option>
+        </select></label>
+        <label class="check" for="logOff"><input type="checkbox" id="logOff">Include off days</label>
+      </div>
+    </div>
+    <div class="chips" id="logChips"></div>
+    <div class="tablewrap"><table class="log">
+      <thead><tr><th>Date</th><th>Shift</th><th>Leave</th><th class="num">Days</th><th>Taken from</th><th>OIL used</th><th>Status</th><th>Note</th></tr></thead>
+      <tbody id="logBody"></tbody>
+      <tfoot id="logFoot"></tfoot>
+    </table></div>
+  </section>
+</div>
+
+<div class="overlay" id="dayModal" hidden>
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="mTitle">
+    <h3 id="mTitle"></h3>
+    <div id="mInfo" class="subtitle"></div>
+    <div class="g2">
+      <label for="mShift">Shift<select id="mShift"></select></label>
+      <label for="mCode">Leave / status<select id="mCode"></select></label>
+    </div>
+    <label for="mOil" id="mOilWrap" hidden>Which OIL is this? (the public holiday it was earned on)<select id="mOil"></select></label>
+    <div class="evbox" id="mSpanBox">
+      <span class="lbl2">Multi-day events on this day</span>
+      <div class="list" id="mSpans"></div>
+    </div>
+    <div class="evbox">
+      <span class="lbl2">Events on this day only</span>
+      <div class="list" id="mEvents"></div>
+      <div class="g-ev">
+        <input type="time" id="mEvTime" aria-label="Event time (optional)">
+        <input type="text" id="mEvTitle" placeholder="Add an event, e.g. Dentist" aria-label="Event title">
+        <button class="iconbtn add" id="mEvAdd" type="button" aria-label="Add event">+</button>
+      </div>
+    </div>
+    <label for="mNote">Note<textarea id="mNote" placeholder="e.g. Shift swap with colleague"></textarea></label>
+    <dl class="kv" id="mBreak"></dl>
+    <div class="mrow">
+      <button class="btn danger" id="mReset" type="button">Reset day</button>
+      <button class="btn" id="mCancel" type="button">Cancel</button>
+      <button class="btn primary" id="mSave" type="button">Save</button>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="importModal" hidden>
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="iTitle">
+    <h3 id="iTitle">Replace your schedule?</h3>
+    <p class="subtitle" id="iInfo"></p>
+    <div class="mrow">
+      <button class="btn" id="iCancel" type="button">Cancel</button>
+      <button class="btn primary" id="iConfirm" type="button">Replace with backup</button>
+    </div>
+  </div>
+</div>
+<div class="toast" id="toast" hidden></div>
+
+<script>
+/*ENGINE START*/
+const LS_KEY = "shiftLeaveTracker.shared.v1";
+const DAY = 864e5;
+const ANCHORS = { A: "2026-11-24", B: "2026-11-25", C: "2026-11-23", D: "2026-11-22" };
+const CYCLE = ["M", "N", "OFF", "OFF"];
+const SHIFT_INFO = { M: "Morning · 8:00 AM – 8:00 PM", N: "Night · 8:00 PM – 8:00 AM", OFF: "Off day" };
+const BUILTIN_LEAVE = {
+  OL:  { name: "On Local Leave", w: 1.5, pool: "wf" },
+  OVL: { name: "Overseas Leave", w: 1.5, pool: "wf" },
+  OIL: { name: "Off-in-Lieu", w: 1, pool: "wf" },
+  HL:  { name: "Hospitalisation Leave", w: 1, pool: "hl" },
+  FCL: { name: "Family Care Leave", w: 1, pool: "fcl" },
+  BDL: { name: "Birthday Leave", w: 1, pool: "bdl" },
+  MC:  { name: "Medical Leave (with MC)", w: 1, pool: "mc" },
+  MCW: { name: "Medical Leave (without MC)", w: 1, pool: "mc", short: "MC w/o" },
+  MED: { name: "Medical Appointment", w: 0, pool: null, short: "Med" },
+  C:   { name: "On Course", w: 0, pool: null },
+};
+// Custom leave types: pool "wf" = annual-leave waterfall, "own" = its own yearly quota, "none" = tracked only
+function buildLeave(list) {
+  const L = { ...BUILTIN_LEAVE };
+  for (const c of list || []) L[c.code] = { name: c.name, w: +c.w || 0, pool: c.pool === "wf" ? "wf" : c.pool === "own" ? "x:" + c.code : null, custom: true, color: c.color || "#0ea5e9", quota: +c.quota || 0 };
+  return L;
+}
+let LEAVE = buildLeave([]);
+const short = c => (LEAVE[c] && LEAVE[c].short) || c;
+const PH_SEED = [
+  ["2026-01-01","New Year's Day"],["2026-02-17","Chinese New Year"],["2026-02-18","Chinese New Year"],
+  ["2026-03-21","Hari Raya Puasa"],["2026-04-03","Good Friday"],["2026-05-01","Labour Day"],
+  ["2026-05-27","Hari Raya Haji"],["2026-05-31","Vesak Day"],["2026-08-09","National Day"],
+  ["2026-11-08","Deepavali"],["2026-12-25","Christmas Day"],
+  ["2027-01-01","New Year's Day"],["2027-02-06","Chinese New Year"],["2027-02-07","Chinese New Year"],
+  ["2027-03-10","Hari Raya Puasa"],["2027-03-26","Good Friday"],["2027-05-01","Labour Day"],
+  ["2027-05-17","Hari Raya Haji"],["2027-05-20","Vesak Day"],["2027-08-09","National Day"],
+  ["2027-10-28","Deepavali"],["2027-12-25","Christmas Day"],
+];
+const uid = () => Math.random().toString(36).slice(2, 10);
+function defaultState() {
+  return {
+    version: 1,
+    assignments: [],
+    holidays: PH_SEED.map(([date, name]) => ({ date, name })),
+    days: {},
+    years: {},
+    defaults: { fcl: 2, mc: 14, hl: 45, bdl: 1 },
+    settings: { medWeight: 0, oilFirst: false },
+    customLeave: [],
+    spans: [],
+  };
+}
+let state = defaultState();
+
+const dn = s => { const [y, m, d] = s.split("-").map(Number); return Math.round(Date.UTC(y, m - 1, d) / DAY); };
+const isoOf = n => new Date(n * DAY).toISOString().slice(0, 10);
+const r2 = x => Math.round(x * 100) / 100;
+
+function teamOn(d) { let t = null; for (const a of state.assignments) if (a.start && a.end && a.start <= d && d <= a.end) t = a.team; return t; }
+function schedShift(team, d) { if (!team || !ANCHORS[team]) return null; const k = (((dn(d) - dn(ANCHORS[team])) % 4) + 4) % 4; return CYCLE[k]; }
+function dayInfo(d) {
+  const team = teamOn(d), sched = schedShift(team, d), rec = state.days[d] || {};
+  const eff = rec.shift || sched;
+  return { team, sched, eff, rec, working: eff === "M" || eff === "N" };
+}
+function getYear(y) { return state.years[y] || { bf: 0, al: 0, ...state.defaults, _new: true }; }
+function phsOfYear(y) { return state.holidays.filter(h => h.date.startsWith(y + "-")).map(h => h.date).sort(); }
+
+// Unused Christmas OIL from last year can still be used this year (setting on by default)
+function carryIn(y) {
+  if (state.settings.carryXmas === false) return [];
+  const py = String(+y - 1), xs = state.holidays.filter(h => h.date === py + "-12-25");
+  if (!xs.length) return [];
+  const pc = computeYear(py);
+  return xs.map(h => ({ key: h.date, left: r2(1 - (pc.oilTaken[h.date] || 0)) })).filter(u => u.left > 0);
+}
+
+function computeYear(y) {
+  y = String(y);
+  const yb = getYear(y), phs = phsOfYear(y);
+  const phBefore = d => phs.filter(p => p < d).length;   // strictly before: unlocks the day after the PH
+  // Optional starting point: balances known on a date; leave before it is already reflected in those figures
+  const cp = yb.cp && yb.cp.date && yb.cp.date.startsWith(y + "-") ? yb.cp : null;
+  // OIL as units, one per public holiday, so every OIL day taken can be traced to the holiday it came from
+  const units = [];
+  const carried = carryIn(y);
+  for (const u of carried) units.push({ key: u.key, left: u.left, init: u.left, from: y + "-01-01", carried: true });
+  if (cp) {
+    let rest = +cp.oil || 0;
+    for (const p of (Array.isArray(cp.oilFrom) ? cp.oilFrom : [])) { if (rest <= 0) break; const a = Math.min(1, rest); units.push({ key: p, left: a, init: a, from: cp.date }); rest -= a; }
+    if (rest > 0) units.push({ key: "cp", left: rest, init: rest, from: cp.date });
+    phs.filter(p => p >= cp.date).forEach(p => units.push({ key: p, left: 1, init: 1, from: isoOf(dn(p) + 1) }));
+  } else phs.forEach(p => units.push({ key: p, left: 1, init: 1, from: isoOf(dn(p) + 1) }));
+  const carriedTotal = carried.reduce((s, u) => s + u.left, 0);
+  const oilBase = d => cp && d < cp.date ? phBefore(d) + carriedTotal : units.reduce((s, u) => s + (u.from <= d ? u.init : 0), 0);
+  const availNow = d => units.reduce((s, u) => s + (u.from <= d ? u.left : 0), 0);
+  const reserved = new Set(Object.values(state.days).filter(r => r.status === "OIL" && r.oilFor).map(r => r.oilFor));
+  const oilTaken = {};
+  const takeOil = (d, t, prefer) => {
+    const parts = [];
+    const cand = units.filter(u => u.from <= d && u.left > 1e-9).sort((a, b) =>
+      (b.key === prefer) - (a.key === prefer) || reserved.has(a.key) - reserved.has(b.key) || (b.key === "cp") - (a.key === "cp") || a.key.localeCompare(b.key));
+    for (const u of cand) {
+      if (t <= 1e-9) break;
+      const a = Math.min(u.left, t); u.left -= a; t -= a;
+      parts.push({ key: u.key, amt: r2(a), carried: !!u.carried });
+      oilTaken[u.key] = (oilTaken[u.key] || 0) + a;
+    }
+    return parts;
+  };
+  let bf = cp ? (+cp.bf || 0) : (+yb.bf || 0), al = cp ? (+cp.al || 0) : (+yb.al || 0), oilUsed = 0;
+  const used = { hl: 0, fcl: 0, bdl: 0, mc: 0 }, mcSplit = { MC: 0, MCW: 0 }, wf = { bf: 0, oil: 0, al: 0 };
+  const counts = {}; Object.keys(LEAVE).forEach(k => counts[k] = 0);
+  let medDays = 0; const per = {};
+  const dates = Object.keys(state.days).filter(d => d.startsWith(y + "-") && LEAVE[state.days[d].status]).sort();
+  for (const d of dates) {
+    const info = dayInfo(d), code = info.rec.status, def = LEAVE[code];
+    counts[code]++;
+    const w = info.working ? (code === "MED" ? (+state.settings.medWeight || 0) : def.w) : 0;
+    const br = { bf: 0, oil: 0, al: 0, pool: 0, oilAvail: 0, oilFrom: [] };
+    if (w > 0) {
+      if (def.pool === "wf" && cp && d < cp.date) {
+        br.pre = true;   // before the starting point: already counted in the starting balances
+      } else if (def.pool === "wf") {
+        let r = w;
+        br.oilAvail = Math.max(0, r2(availNow(d)));
+        const order = (code === "OIL" && state.settings.oilFirst) ? ["oil", "bf", "al"] : ["bf", "oil", "al"];
+        for (const k of order) {
+          if (r <= 0) break;
+          if (k === "bf") {
+            // Brought-forward leave that can't cover the whole shift is left aside when OIL can cover it instead
+            if (bf < r - 1e-9 && order.indexOf("oil") > order.indexOf("bf") && availNow(d) > 1e-9) { if (bf > 1e-9) br.bfSkipped = r2(bf); continue; }
+            const t = Math.min(r, Math.max(0, bf)); bf -= t; br.bf += t; r -= t;
+          }
+          else if (k === "oil") {
+            // One OIL covers a whole shift as 1 day, whatever the leave weight (OVL 1.5 still uses 1 OIL)
+            const need = Math.min(1, r), t = Math.min(need, Math.max(0, availNow(d)));
+            if (t > 0) { br.oilFrom = takeOil(d, t, code === "OIL" ? info.rec.oilFor : null); oilUsed += t; br.oil += t; r = t >= need - 1e-9 ? 0 : r2(r - t * r / need); }
+          }
+          else { al -= r; br.al += r; r = 0; }
+        }
+        wf.bf += br.bf; wf.oil += br.oil; wf.al += br.al;
+      } else if (def.pool) { used[def.pool] = (used[def.pool] || 0) + w; br.pool = w; if (def.pool === "mc") mcSplit[code] += w; }
+      else medDays += w;
+    }
+    // w = what actually comes off the balances (a shift on OIL counts as 1 day); gross = the leave type weight
+    const ded = def.pool === "wf" && w > 0 && !br.pre ? r2(br.bf + br.oil + br.al) : w;
+    per[d] = { w: ded, gross: w, br, code, working: info.working };
+  }
+  const oilUsedThrough = x => dates.filter(d => d <= x).reduce((s, d) => s + per[d].br.oil, 0);
+  return { y, yb, cp, oilBase, carried, bfStart: bf + wf.bf, alStart: al + wf.al, phs, phBefore, bfLeft: r2(bf), alLeft: r2(al), oilUsed: r2(oilUsed), oilTaken, used, mcSplit, wf, counts, medDays, per, oilUsedThrough };
+}
+
+// Holidays an OIL day can be tagged with: this year's (earned strictly before the leave date) plus
+// last year's Christmas if carried over. A holiday is "used" once a leave day has taken its OIL.
+function oilChoices(d, excludeDays) {
+  const y = d.slice(0, 4), used = {}, ex = excludeDays || (() => false);
+  for (const [k, r] of Object.entries(state.days)) if (!ex(k) && r.status === "OIL" && r.oilFor) used[r.oilFor] = k;
+  const c = computeYear(y), took = {};
+  for (const [k, p] of Object.entries(c.per)) if (!ex(k)) for (const part of p.br.oilFrom || []) { took[part.key] = (took[part.key] || 0) + part.amt; if (took[part.key] >= 1 - 1e-9 && !used[part.key]) used[part.key] = k; }
+  // With a starting point that names its remaining OIL holidays, earlier holidays count as already used
+  const cp = state.years[y] && state.years[y].cp;
+  if (cp && Array.isArray(cp.oilFrom)) for (const h of state.holidays) if (h.date.startsWith(y + "-") && h.date < cp.date && !cp.oilFrom.includes(h.date) && !used[h.date]) used[h.date] = "before";
+  const name = {}; state.holidays.forEach(h => name[h.date] = h.name);
+  const carried = carryIn(y).map(u => ({ date: u.key, name: name[u.key] + " " + u.key.slice(0, 4) + " (carried over)", unlocked: true, usedOn: used[u.key] || null }));
+  return carried.concat(state.holidays.filter(h => h.date.startsWith(y + "-")).sort((a, b) => a.date.localeCompare(b.date))
+    .map(h => ({ date: h.date, name: h.name, unlocked: h.date < d, usedOn: used[h.date] || null })));
+}
+// Give each working day in order the earliest ticked holiday earned before it. Returns null if one can't be matched.
+function assignOil(workDays, picked) {
+  const left = [...picked].sort(), out = {};
+  for (const d of [...workDays].sort()) {
+    const i = left.findIndex(p => p < d);
+    if (i < 0) return null;
+    out[d] = left.splice(i, 1)[0];
+  }
+  return out;
+}
+// Annual-leave calculator for a range: tags OL/OVL on working shifts only and reports the
+// brought-forward → unlocked OIL → this-year split, with balances before and after.
+function mergeParts(list) { const m = {}; for (const p of list) { m[p.key] = m[p.key] || { key: p.key, amt: 0, carried: p.carried }; m[p.key].amt = r2(m[p.key].amt + p.amt); } return Object.values(m).sort((a, b) => a.key.localeCompare(b.key)); }
+function workDaysIn(s, e) { const w = []; let off = 0, none = 0; for (let x = dn(s); x <= dn(e); x++) { const d = isoOf(x), i = dayInfo(d); if (i.working) w.push(d); else if (i.eff === "OFF") off++; else none++; } return { work: w, off, none, cal: dn(e) - dn(s) + 1 }; }
+function withDays(days, fn) { const saved = state.days; state.days = days; try { return fn(); } finally { state.days = saved; } }
+function planWaterfall(s, e, code) {
+  const r = workDaysIn(s, e);
+  const base = {}; for (const [k, v] of Object.entries(state.days)) base[k] = { ...v };
+  for (const d of r.work) if (base[d]) { delete base[d].status; delete base[d].oilFor; }
+  const after = {}; for (const [k, v] of Object.entries(base)) after[k] = { ...v };
+  for (const d of r.work) after[d] = { ...(after[d] || {}), status: code };
+  const years = [...new Set([s.slice(0, 4), e.slice(0, 4)])];
+  const snap = days => withDays(days, () => {
+    const out = {};
+    for (const y of years) {
+      const c = computeYear(y), x = e.slice(0, 4) === y ? e : y + "-12-31";
+      out[y] = { bf: c.bfLeft, al: c.alLeft, oil: r2(c.oilBase(x) - c.oilUsedThrough(x)), per: c.per };
+    }
+    return out;
+  });
+  const before = snap(base), aft = snap(after);
+  const split = { bf: 0, oil: 0, al: 0, pre: 0 }, oilParts = [];
+  for (const d of r.work) {
+    const p = aft[d.slice(0, 4)].per[d]; if (!p) continue;
+    if (p.br.pre) split.pre += p.w; else { split.bf += p.br.bf; split.oil += p.br.oil; split.al += p.br.al; oilParts.push(...(p.br.oilFrom || [])); }
+  }
+  for (const k in split) split[k] = r2(split[k]);
+  return { ...r, gross: r2(r.work.length * LEAVE[code].w), required: r2(split.bf + split.oil + split.al + split.pre), split, oilParts: mergeParts(oilParts), before, after: aft, years };
+}
+// Leave counts against balances once its date arrives (date <= x). Later leave is "booked".
+function splitTaken(c, x) {
+  const mk = () => ({ bf: 0, oil: 0, al: 0, pools: {}, mc: { MC: 0, MCW: 0 }, counts: {}, medDays: 0, days: 0 });
+  const t = mk(), b = mk();
+  for (const [d, p] of Object.entries(c.per)) {
+    const o = d <= x ? t : b, def = LEAVE[p.code];
+    o.bf += p.br.bf; o.oil += p.br.oil; o.al += p.br.al;
+    if (p.br.pool) { o.pools[def.pool] = (o.pools[def.pool] || 0) + p.br.pool; if (def.pool === "mc") o.mc[p.code] += p.br.pool; }
+    if (p.code === "MED") o.medDays += p.w;
+    o.counts[p.code] = (o.counts[p.code] || 0) + 1;
+    if (p.w > 0) o.days += p.w;
+  }
+  return { t, b };
+}
+
+function workedStats(y, asOf) {
+  let m = 0, n = 0, sm = 0, sn = 0;
+  for (let x = dn(y + "-01-01"), e = dn(y + "-12-31"); x <= e; x++) {
+    const d = isoOf(x), i = dayInfo(d), st = i.rec.status;
+    if (!i.working || (st && st !== "C" && st !== "MED")) continue;
+    if (d <= asOf) i.eff === "M" ? m++ : n++; else i.eff === "M" ? sm++ : sn++;
+  }
+  return { m, n, sm, sn };
+}
+/*ENGINE END*/
+
+/* ---------- storage ---------- */
+let storageOk = true;
+let localStamp = 0;            // when this browser's copy was last changed
+const cloud = { ref: null, ok: false, lastWritten: 0, timer: null, writing: false };
+function setState(s) { state = s; if (!Array.isArray(state.migrations)) state.migrations = []; if (!Array.isArray(state.spans)) state.spans = []; LEAVE = buildLeave(state.customLeave); }
+function applyMigrations() { return false; }
+function load() {
+  try {
+    const raw = localStorage.getItem(LS_KEY);
+    if (raw) setState(normalise(JSON.parse(raw)));
+    localStamp = +localStorage.getItem(LS_KEY + ".at") || 0;
+  } catch (e) { storageOk = false; }
+}
+function saveLocal() {
+  try { localStorage.setItem(LS_KEY, JSON.stringify(state)); localStorage.setItem(LS_KEY + ".at", String(localStamp)); storageOk = true; }
+  catch (e) { storageOk = false; }
+}
+function save() {
+  localStamp = Date.now();
+  saveLocal();
+  if (cloud.ok) { setSync("Syncing…"); clearTimeout(cloud.timer); cloud.timer = setTimeout(pushCloud, 600); }
+  else setSync(storageOk ? "Saved in this browser " + new Date().toLocaleTimeString() : "");
+  showStorageBanner();
+}
+function setSync(t) { $("saveStatus").textContent = t; const s = $("syncPill"); if (s) s.textContent = t; }
+function pushCloud() {}
+function startCloud() { setSync(storageOk ? "Saved on this device. Use Export JSON to back up or move to another device." : ""); }
+function normalise(s) {
+  const d = defaultState();
+  if (!s || typeof s !== "object") throw new Error("not an object");
+  const out = {
+    version: 1,
+    assignments: Array.isArray(s.assignments) ? s.assignments.filter(a => a && a.team).map(a => ({ id: a.id || uid(), start: String(a.start || ""), end: String(a.end || ""), team: String(a.team) })) : d.assignments,
+    holidays: Array.isArray(s.holidays) ? s.holidays.filter(h => h && /^\d{4}-\d{2}-\d{2}$/.test(h.date)).map(h => ({ date: h.date, name: String(h.name || "Public holiday") })) : d.holidays,
+    days: {}, years: {},
+    defaults: { ...d.defaults, ...(s.defaults || {}) },
+    settings: { ...d.settings, ...(s.settings || {}) },
+    customLeave: Array.isArray(s.customLeave) ? s.customLeave.filter(c => c && /^[A-Z0-9]{1,6}$/.test(c.code) && !BUILTIN_LEAVE[c.code])
+      .map(c => ({ code: c.code, name: String(c.name || c.code), w: num(c.w, 0), pool: ["wf", "own", "none"].includes(c.pool) ? c.pool : "none", quota: num(c.quota, 0), color: /^#[0-9a-fA-F]{6}$/.test(c.color) ? c.color : "#0ea5e9" })) : [],
+  };
+  const L = buildLeave(out.customLeave);
+  if (s.days && typeof s.days === "object") for (const [k, v] of Object.entries(s.days)) {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(k) || !v) continue;
+    const r = {};
+    if (["M", "N", "OFF"].includes(v.shift)) r.shift = v.shift;
+    if (L[v.status]) r.status = v.status;
+    if (r.status === "OIL" && /^\d{4}-\d{2}-\d{2}$/.test(v.oilFor)) r.oilFor = v.oilFor;
+    if (v.note) r.note = String(v.note);
+    if (Array.isArray(v.events)) { const ev = v.events.filter(e => e && e.title).map(e => ({ id: e.id || uid(), title: String(e.title), time: /^\d{2}:\d{2}$/.test(e.time) ? e.time : "" })); if (ev.length) r.events = ev; }
+    if (Object.keys(r).length) out.days[k] = r;
+  }
+  if (s.years && typeof s.years === "object") for (const [k, v] of Object.entries(s.years)) {
+    if (!/^\d{4}$/.test(k) || !v) continue;
+    out.years[k] = { bf: +v.bf || 0, al: +v.al || 0, fcl: num(v.fcl, out.defaults.fcl), mc: num(v.mc, out.defaults.mc), hl: num(v.hl, out.defaults.hl), bdl: num(v.bdl, out.defaults.bdl) };
+    if (v.cp && /^\d{4}-\d{2}-\d{2}$/.test(v.cp.date)) {
+      out.years[k].cp = { date: v.cp.date, oil: num(v.cp.oil, 0), al: num(v.cp.al, 0), bf: num(v.cp.bf, 0) };
+      if (Array.isArray(v.cp.oilFrom)) out.years[k].cp.oilFrom = v.cp.oilFrom.filter(x => /^\d{4}-\d{2}-\d{2}$/.test(x));
+    }
+  }
+  out.migrations = Array.isArray(s.migrations) ? s.migrations.map(String) : [];
+  const isD = x => /^\d{4}-\d{2}-\d{2}$/.test(x);
+  out.spans = Array.isArray(s.spans) ? s.spans.filter(p => p && p.title && isD(p.start) && isD(p.end))
+    .map(p => ({ id: p.id || uid(), title: String(p.title), start: p.start <= p.end ? p.start : p.end, end: p.start <= p.end ? p.end : p.start,
+      time: /^\d{2}:\d{2}$/.test(p.time) ? p.time : "", color: /^#[0-9a-fA-F]{6}$/.test(p.color) ? p.color : "#7c3aed" })) : [];
+  return out;
+}
+const num = (v, f) => (v === "" || v == null || isNaN(+v)) ? f : +v;
+
+/* ---------- ui state ---------- */
+const $ = id => document.getElementById(id);
+const esc = s => String(s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const todayIso = () => { const t = new Date(); return `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, "0")}-${String(t.getDate()).padStart(2, "0")}`; };
+const fmtD = d => new Date(dn(d) * DAY).toLocaleDateString("en-SG", { weekday: "short", day: "numeric", month: "short", year: "numeric", timeZone: "UTC" });
+const fmtN = x => (Math.round(x * 100) / 100).toString();
+const ui = { year: todayIso().slice(0, 4), asOf: todayIso(), month: todayIso().slice(0, 7), editing: null, pendingImport: null };
+
+function toast(msg) { const t = $("toast"); t.textContent = msg; t.hidden = false; clearTimeout(toast._t); toast._t = setTimeout(() => t.hidden = true, 2600); }
+function showStorageBanner() {
+  const b = $("storageBanner");
+  b.hidden = storageOk;
+  b.hidden = storageOk || cloud.ok;
+  b.textContent = "This browser isn't letting the page save. Your changes will be lost when you close it, so use Export JSON to keep a backup.";
+}
+
+function codeOptions(sel, withNone, noneLabel) {
+  sel.innerHTML = (withNone ? `<option value="">${noneLabel}</option>` : "") +
+    Object.entries(LEAVE).map(([k, v]) => `<option value="${k}">${short(k)} · ${v.name}</option>`).join("");
+}
+
+/* ---------- render ---------- */
+function refreshCodeOptions() {
+  const a = $("rCode").value, b = $("mCode").value;
+  codeOptions($("rCode"), false); codeOptions($("mCode"), true, "None");
+  $("rCode").value = LEAVE[a] ? a : "OL";
+  $("mCode").value = LEAVE[b] ? b : "";
+}
+// "Deepavali (8 Nov) 1d, Christmas Day (25 Dec 2026, carried over) 0.5d"
+function oilName(k, carried) {
+  if (k === "cp") return "OIL at your starting point";
+  const h = state.holidays.find(x => x.date === k), dt = fmtShort(k) + (carried || k.slice(0, 4) !== ui.year ? " " + k.slice(0, 4) : "");
+  return `${h ? h.name : "Public holiday"} (${dt}${carried ? ", carried over" : ""})`;
+}
+const oilPartsText = (parts, withAmt) => (parts || []).map(p => oilName(p.key, p.carried) + (withAmt ? ` ${fmtN(p.amt)}d` : "")).join(", ");
+const tagHtml = code => { const d = LEAVE[code]; return `<span class="tag t-${code}"${d.custom ? ` style="background:${d.color}2e;color:${d.color}"` : ""}>${esc(short(code))}</span>`; };
+const evSort = evs => [...evs].sort((a, b) => (a.time || "99").localeCompare(b.time || "99"));
+function renderCustomLeave() {
+  $("clList").innerHTML = state.customLeave.length ? state.customLeave.map(c => {
+    const where = c.pool === "own" ? `own quota ${fmtN(c.quota)}d/yr` : c.pool === "wf" ? "from annual leave" : "tracked only";
+    return `<div class="clrow">${tagHtml(c.code)}<span>${esc(c.name)} · ${fmtN(c.w)}d per shift · ${where}</span>
+      <button class="iconbtn" type="button" data-delcl="${c.code}" aria-label="Delete ${esc(c.name)}">×</button></div>`;
+  }).join("") : `<p class="hint">No custom leave types yet.</p>`;
+}
+const spansOn = d => state.spans.filter(s => s.start <= d && d <= s.end).sort((a, b) => a.start.localeCompare(b.start) || a.id.localeCompare(b.id));
+const fmtShort = d => fmtD(d).replace(/^\w+, /, "").replace(/ \d{4}$/, "");
+const spanDates = s => s.start === s.end ? fmtShort(s.start) : `${fmtShort(s.start)} – ${fmtShort(s.end)}${s.start.slice(0, 4) !== s.end.slice(0, 4) ? " " + s.end.slice(0, 4) : ""}`;
+function renderSpans() {
+  const list = [...state.spans].sort((a, b) => a.start.localeCompare(b.start));
+  $("spList").innerHTML = list.length ? list.map(s => `<div class="sprow"><i style="background:${s.color}"></i>
+    <span>${esc(s.title)}${s.time ? ` · ${s.time}` : ""}<br><span class="hint">${spanDates(s)} · ${dn(s.end) - dn(s.start) + 1} day${s.start === s.end ? "" : "s"}</span></span>
+    <button class="btn sm" type="button" data-editsp="${s.id}">Edit</button>
+    <button class="iconbtn" type="button" data-delsp="${s.id}" aria-label="Delete ${esc(s.title)}">×</button></div>`).join("")
+    : `<p class="hint">No multi-day events yet.</p>`;
+}
+function resetSpanForm() { ui.editSpan = null; $("sp-title").value = ""; $("sp-start").value = ""; $("sp-end").value = ""; $("sp-time").value = ""; $("sp-color").value = "#7c3aed"; $("spSave").textContent = "Add event"; $("spCancel").hidden = true; }
+function renderRangeOil() {
+  const s = $("rStart").value, e = $("rEnd").value, show = $("rCode").value === "OIL" && s && e && e >= s;
+  $("rOilWrap").hidden = !show; if (!show) return;
+  const keep = new Set([...$("rOilList").querySelectorAll("input:checked")].map(i => i.value));
+  const inRange = k => k >= s && k <= e;
+  const ch = oilChoices(e, inRange).filter(c => c.date < e);
+  $("rOilList").innerHTML = ch.length ? ch.map(c => {
+    const dis = !!c.usedOn;
+    return `<label class="oilopt${dis ? " dis" : ""}"><input type="checkbox" value="${c.date}" ${dis ? "disabled" : ""} ${keep.has(c.date) && !dis ? "checked" : ""}>${esc(c.name)} · ${fmtShort(c.date)}${dis ? ` (${usedTxt(c.usedOn)})` : ""}</label>`;
+  }).join("") : `<p class="hint">No public holidays in ${e.slice(0, 4)} fall before these dates.</p>`;
+}
+function renderLog() {
+  const y = ui.year, c = computeYear(y), type = $("logType").value, show = $("logShow").value, withOff = $("logOff").checked;
+  const prev = type;
+  $("logType").innerHTML = `<option value="">All leave types</option>` + Object.keys(LEAVE).map(k => `<option value="${k}">${esc(short(k))} · ${esc(LEAVE[k].name)}</option>`).join("");
+  $("logType").value = LEAVE[prev] ? prev : "";
+  $("logTitle").textContent = `Leave log · ${y}`;
+  const ph = {}; state.holidays.forEach(h => ph[h.date] = h.name);
+  const rows = Object.keys(c.per).sort().filter(d => {
+    const p = c.per[d], taken = d <= ui.asOf;
+    if ($("logType").value && p.code !== $("logType").value) return false;
+    if (show === "taken" && !taken) return false;
+    if (show === "booked" && taken) return false;
+    if (!withOff && !p.working) return false;
+    return true;
+  });
+  const from = p => {
+    if (p.br.pre) return "Counted in starting point";
+    const parts = [];
+    if (p.br.bf) parts.push(`BF ${fmtN(p.br.bf)}`);
+    if (p.br.oil) parts.push(`OIL ${fmtN(p.br.oil)}`);
+    if (p.br.al) parts.push(`This year ${fmtN(p.br.al)}`);
+    if (p.br.pool) { const pl = LEAVE[p.code].pool; parts.push(`${pl.startsWith("x:") ? esc(LEAVE[p.code].name) : pl.toUpperCase()} ${fmtN(p.br.pool)}`); }
+    return parts.join(" · ") || (p.working ? "Not deducted" : "Off day, not deducted");
+  };
+  const totals = {};
+  $("logBody").innerHTML = rows.length ? rows.map(d => {
+    const p = c.per[d], i = dayInfo(d), r = state.days[d], taken = d <= ui.asOf;
+    const t = totals[p.code] = totals[p.code] || { n: 0, w: 0 }; t.n++; t.w += p.w;
+    return `<tr data-d="${d}" class="${taken ? "" : "booked"}" tabindex="0">
+      <td>${fmtD(d).replace(/ \d{4}$/, "")}</td><td>${i.eff || "—"}${ph[d] ? ` · PH` : ""}</td><td>${tagHtml(p.code)}</td>
+      <td class="num">${p.w > 0 ? fmtN(p.w) : "0"}</td><td>${from(p)}</td>
+      <td>${p.br.oilFrom && p.br.oilFrom.length ? esc(oilPartsText(p.br.oilFrom, true)) : p.code === "OIL" ? (r.oilFor ? `${esc(ph[r.oilFor] || "Public holiday")} · ${fmtShort(r.oilFor)}` : (p.working ? `<span class="neg">Not chosen</span>` : "—")) : ""}</td>
+      <td><span class="pill ${taken ? "taken" : "booked"}">${taken ? "Taken" : "Booked"}</span></td>
+      <td>${esc(r.note || "")}</td></tr>`;
+  }).join("") : `<tr><td colspan="8" class="hint">No leave ${show === "booked" ? "booked ahead" : show === "taken" ? `taken by ${fmtShort(ui.asOf)}` : ""} in ${y}${$("logType").value ? " for this type" : ""}.</td></tr>`;
+  const sum = Object.values(totals).reduce((s, t) => s + t.w, 0);
+  $("logFoot").innerHTML = rows.length ? `<tr><td colspan="3">${rows.length} day${rows.length === 1 ? "" : "s"}</td><td class="num">${fmtN(r2(sum))}</td><td colspan="4"></td></tr>` : "";
+  $("logChips").innerHTML = Object.entries(totals).map(([k, t]) => `<span class="chip">${tagHtml(k)}${t.n} day${t.n === 1 ? "" : "s"} · <b>${fmtN(r2(t.w))}d</b></span>`).join("");
+}
+function render() { $("welcome").hidden = state.assignments.length > 0; refreshCodeOptions(); renderCustomLeave(); renderSpans(); renderRangeOil(); renderLog(); renderYearSel(); renderDash(); renderCal(); renderBalances(); renderTeams(); renderSettings(); renderRangePreview(); }
+
+function renderYearSel() {
+  const ys = new Set(); for (let y = 2025; y <= 2032; y++) ys.add(String(y));
+  Object.keys(state.years).forEach(y => ys.add(y)); state.holidays.forEach(h => ys.add(h.date.slice(0, 4)));
+  $("yearSel").innerHTML = [...ys].sort().map(y => `<option ${y === ui.year ? "selected" : ""}>${y}</option>`).join("");
+  $("asOf").value = ui.asOf;
+}
+
+function card(lbl, big, sub, neg) { return `<div class="card"><span class="lbl">${lbl}</span><span class="big ${neg ? "neg" : ""}">${big}</span><span class="sub">${sub}</span></div>`; }
+
+function renderDash() {
+  const y = ui.year, c = computeYear(y), yb = c.yb;
+  const asOf = ui.asOf;
+  const ws = workedStats(y, asOf);
+  const unlocked = c.oilBase(asOf), avail = r2(unlocked - c.oilUsedThrough(asOf)), locked = c.phs.filter(p => p >= asOf).length;
+  const cpTxt = c.cp ? ` · counting from ${fmtShort(c.cp.date)}` : "";
+  const { t, b } = splitTaken(c, asOf);
+  const P = (o, k) => o.pools[k] || 0;
+  // remaining = start minus leave already taken; "after booked" also subtracts upcoming leave
+  const bk = (n, after) => n > 0 ? ` · ${fmtN(r2(n))} booked ahead → ${fmtN(r2(after))} after` : "";
+  const bfNow = r2(c.bfStart - t.bf), alNow = r2(c.alStart - t.al);
+  const mcNow = r2(yb.mc - P(t, "mc")), hlNow = r2(yb.hl - P(t, "hl")), fclNow = r2(yb.fcl - P(t, "fcl")), bdlNow = r2(yb.bdl - P(t, "bdl"));
+  const mini = (now, total, lbl, booked) => `<div><b class="${now < 0 ? "neg" : ""}">${fmtN(now)}</b><span>${lbl} / ${fmtN(total)}${booked > 0 ? ` · ${fmtN(booked)} booked` : ""}</span></div>`;
+  const asOfShort = fmtShort(asOf);
+  $("dash").innerHTML =
+    card("Shifts worked to " + asOfShort, `${ws.m + ws.n} <small>· ${(ws.m + ws.n) * 12} hrs</small>`,
+      `${ws.m} Morning · ${ws.n} Night · ${ws.sm + ws.sn} more scheduled in ${y}`) +
+    card("Brought forward left", `${fmtN(bfNow)} <small>/ ${fmtN(c.bfStart)}</small>`, `${fmtN(r2(t.bf))} taken${bk(b.bf, bfNow - b.bf)}${cpTxt}`, bfNow < 0) +
+    card("OIL available on " + asOfShort, `${fmtN(avail)} <small>unlocked</small>`,
+      `${fmtN(r2(t.oil))} taken${b.oil > 0 ? ` · ${fmtN(r2(b.oil))} booked ahead` : ""} · ${locked} PH still locked · ${c.phs.length} PH OIL in ${y}${c.carried.length ? ` · ${c.carried.map(u => oilName(u.key, true)).join(", ")} ${fmtN(c.carried.reduce((s, u) => s + u.left, 0))}d carried in` : ""}${cpTxt}`, avail < 0) +
+    card("This year's leave left", `${fmtN(alNow)} <small>/ ${fmtN(c.alStart)}</small>`, `${fmtN(r2(t.al))} taken${bk(b.al, alNow - b.al)}${cpTxt}`, alNow < 0) +
+    card("MC pool left (MC + MC w/o)", `${fmtN(mcNow)} <small>/ ${fmtN(yb.mc)}</small>`, `MC ${fmtN(t.mc.MC)} · MC w/o ${fmtN(t.mc.MCW)} taken${bk(P(b, "mc"), mcNow - P(b, "mc"))}`, mcNow < 0) +
+    `<div class="card"><span class="lbl">Other leave left</span><div class="minis">
+      ${mini(hlNow, yb.hl, "HL", P(b, "hl"))}${mini(fclNow, yb.fcl, "FCL", P(b, "fcl"))}${mini(bdlNow, yb.bdl, "Birthday", P(b, "bdl"))}</div></div>` +
+    state.customLeave.map(cl => {
+      const def = LEAVE[cl.code], own = def.pool && def.pool !== "wf";
+      const tn = t.counts[cl.code] || 0, bn = b.counts[cl.code] || 0;
+      if (own) { const now = r2(cl.quota - P(t, def.pool)); return card(esc(cl.name) + " left", `${fmtN(now)} <small>/ ${fmtN(cl.quota)}</small>`, `${fmtN(P(t, def.pool))} taken${bk(P(b, def.pool), now - P(b, def.pool))}`, now < 0); }
+      return card(esc(cl.name), `${tn} <small>day${tn === 1 ? "" : "s"} taken</small>`, (bn ? `${bn} booked ahead · ` : "") + (cl.pool === "wf" ? "comes out of annual leave" : "tracked only"));
+    }).join("");
+  const bb = $("balBanner");
+  bb.hidden = !!c.cp || !(getYear(y)._new || ((+yb.al || 0) === 0 && (+yb.bf || 0) === 0));
+  bb.textContent = `Enter your ${y} brought-forward and annual leave figures under Balances & entitlements so the remaining counts are right.`;
+}
+
+// After an entry from a side panel: jump the calendar to it and highlight its days
+function showOnCal(from, to) {
+  if (!from) return;
+  ui.month = from.slice(0, 7);
+  ui.flash = { from, to: to || from };
+  renderCal();
+  const box = document.querySelector(".calbox"), r = box.getBoundingClientRect();
+  if (r.top < 0 || r.top > window.innerHeight * 0.6) box.scrollIntoView({ block: "start", behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
+  clearTimeout(showOnCal._t);
+  showOnCal._t = setTimeout(() => { ui.flash = null; renderCal(); }, 3000);
+}
+function renderCal() {
+  const [Y, M] = ui.month.split("-").map(Number);
+  $("monthLabel").textContent = new Date(Date.UTC(Y, M - 1, 1)).toLocaleDateString("en-SG", { month: "long", year: "numeric", timeZone: "UTC" });
+  const first = dn(`${ui.month}-01`);
+  const wd = (new Date(first * DAY).getUTCDay() + 6) % 7; // Monday first
+  const start = first - wd;
+  const lastDay = new Date(Date.UTC(Y, M, 0)).getUTCDate();
+  const end = dn(`${ui.month}-${String(lastDay).padStart(2, "0")}`);
+  const endGrid = end + (6 - ((new Date(end * DAY).getUTCDay() + 6) % 7));
+  const ph = {}; state.holidays.forEach(h => ph[h.date] = h.name);
+  const comp = {}; const today = todayIso();
+  const rs = $(ui.tabB ? "wStart" : "rStart").value, re = $(ui.tabB ? "wEnd" : "rEnd").value;
+  let html = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map((d, k) => `<div class="dow" style="grid-row:1;grid-column:${k + 1}">${d}</div>`).join("");
+  // Multi-day events: one continuous bar per week row, stacked in lanes
+  const MAXL = 3, LANE = 18;
+  const weekLanes = {}, hidden = {};
+  for (let w = 0; start + w * 7 <= endGrid; w++) {
+    const ws = isoOf(start + w * 7), we = isoOf(start + w * 7 + 6);
+    const segs = state.spans.filter(s => s.start <= we && s.end >= ws)
+      .map(s => ({ s, a: s.start > ws ? s.start : ws, b: s.end < we ? s.end : we }))
+      .sort((p, q) => p.a.localeCompare(q.a) || (dn(q.b) - dn(q.a)) - (dn(p.b) - dn(p.a)) || p.s.id.localeCompare(q.s.id));
+    const laneEnd = [];
+    let used = 0;
+    for (const g of segs) {
+      let lane = laneEnd.findIndex(e => e < g.a);
+      if (lane < 0) lane = laneEnd.length;
+      if (lane >= MAXL) { for (let x = dn(g.a); x <= dn(g.b); x++) hidden[isoOf(x)] = (hidden[isoOf(x)] || 0) + 1; continue; }
+      laneEnd[lane] = g.b; used = Math.max(used, lane + 1);
+      const c0 = dn(g.a) - dn(ws), c1 = dn(g.b) - dn(ws);
+      const s0 = g.a === g.s.start, s1 = g.b === g.s.end;
+      html += `<div class="sbar${s0 ? " s0" : ""}${s1 ? " s1" : ""}" aria-hidden="true" title="${esc(g.s.title)} · ${spanDates(g.s)}"
+        style="grid-row:${w + 2};grid-column:${c0 + 1} / ${c1 + 2};margin-top:calc(var(--cellpad) + 21px + ${lane * LANE}px);background:${g.s.color}38;border-color:${g.s.color}">${s0 ? "" : "◂ "}${esc(g.s.title)}${g.s.time && s0 ? ` · ${g.s.time}` : ""}${s1 ? "" : " ▸"}</div>`;
+    }
+    weekLanes[w] = used;
+  }
+  for (let x = start; x <= endGrid; x++) {
+    const d = isoOf(x), yy = d.slice(0, 4), w = Math.floor((x - start) / 7), k = (x - start) % 7;
+    comp[yy] = comp[yy] || computeYear(yy);
+    const i = dayInfo(d), p = comp[yy].per[d], evs = evSort(i.rec.events || []), sps = spansOn(d);
+    const fl = ui.flash && d >= ui.flash.from && d <= ui.flash.to;
+    const cls = ["cell", i.eff ? i.eff.toLowerCase() : "", d.slice(0, 7) !== ui.month ? "out" : "", d === today ? "today" : "", rs && re && d >= rs && d <= re ? "sel" : "", fl ? "flash" : ""].join(" ");
+    const cpY = state.years[yy] && state.years[yy].cp, teamStart = state.assignments.find(a => a.start === d);
+    const label = `${fmtD(d)}${i.team ? ", Team " + i.team : ""}${i.eff ? ", " + i.eff : ""}${ph[d] ? ", " + ph[d] : ""}${i.rec.status ? ", " + LEAVE[i.rec.status].name : ""}`;
+    const spLabel = sps.length ? ", " + sps.map(s => s.title).join(", ") : "";
+    const more = (hidden[d] || 0) + Math.max(0, evs.length - 2);
+    html += `<button type="button" class="${cls}" data-d="${d}" aria-label="${esc(label + spLabel)}" style="grid-row:${w + 2};grid-column:${k + 1}">
+      <span class="crow top"><span class="dnum">${+d.slice(8)}</span>${i.team ? `<span class="team">${i.team}</span>` : ""}</span>
+      ${weekLanes[w] ? `<span class="lanes" style="height:${weekLanes[w] * LANE - 2}px"></span>` : ""}
+      <span class="crow"><span class="shift">${i.eff || "—"}</span>${i.rec.shift ? `<span class="ovr" title="Changed from ${i.sched || "none"}">✎</span>` : ""}</span>
+      ${ph[d] ? `<span class="ph" title="${esc(ph[d])}">PH · ${esc(ph[d])}</span>` : ""}
+      ${state.settings.birthday && d.slice(5) === state.settings.birthday ? `<span class="mark bday" title="Your birthday">🎂 My birthday</span>` : ""}
+      ${teamStart ? `<span class="mark" title="Your team changes to Team ${teamStart.team} from this day">→ Team ${teamStart.team}</span>` : ""}
+      ${cpY && cpY.date === d ? `<span class="mark" title="Starting point: ${fmtN(cpY.oil)} OIL, ${fmtN(cpY.al)} leave, ${fmtN(cpY.bf)} brought forward">Start: ${fmtN(cpY.oil)} OIL · ${fmtN(cpY.al)} AL</span>` : ""}
+      ${i.rec.status ? `<span class="crow">${tagHtml(i.rec.status)}<span class="wt">${p && p.w > 0 ? "-" + fmtN(p.w) + "d" : "0d"}</span></span>` : ""}
+      ${p && p.br.oilFrom && p.br.oilFrom.length ? `<span class="oilu" title="${esc(oilPartsText(p.br.oilFrom, true))}">OIL · ${esc(p.br.oilFrom.map(x => x.key === "cp" ? "start" : ((state.holidays.find(h => h.date === x.key) || {}).name || "PH")).join(", "))}</span>` : ""}
+      ${evs.slice(0, 2).map(e => `<span class="ev">${e.time ? `<b>${e.time}</b> ` : ""}${esc(e.title)}</span>`).join("")}
+      ${more ? `<span class="note more">+${more} more</span>` : ""}
+      ${evs.length ? `<span class="evdot">● ${evs.length}</span>` : ""}
+      ${i.rec.note ? `<span class="note">${esc(i.rec.note)}</span>` : ""}
+    </button>`;
+  }
+  $("cal").innerHTML = html;
+}
+
+function renderBalances() {
+  const y = ui.year, yb = getYear(y);
+  $("balYear").textContent = y;
+  for (const k of ["bf", "al", "mc", "hl", "fcl", "bdl"]) { const el = $("b-" + k); if (document.activeElement !== el) el.value = yb[k]; }
+  const cp = yb.cp || {};
+  $("cp-date").value = cp.date || ""; $("cp-oil").value = cp.date ? cp.oil : ""; $("cp-al").value = cp.date ? cp.al : ""; $("cp-bf").value = cp.date ? cp.bf : "";
+  $("cp-date").min = y + "-01-01"; $("cp-date").max = y + "-12-31";
+  $("cpClear").hidden = !cp.date;
+}
+function renderSettings() {
+  for (const k of ["mc", "hl", "fcl", "bdl"]) { const el = $("d-" + k); if (document.activeElement !== el) el.value = state.defaults[k]; }
+  const bd = state.settings.birthday || "";
+  if (document.activeElement !== $("s-bday-d")) $("s-bday-d").value = bd ? +bd.slice(3) : "";
+  $("s-bday-m").value = bd ? bd.slice(0, 2) : "";
+  $("s-med").value = state.settings.medWeight; $("s-oil").checked = !!state.settings.oilFirst; $("s-carry").checked = state.settings.carryXmas !== false;
+}
+function renderTeams() {
+  $("teamList").innerHTML = `<div class="lrow hint"><span>From</span><span>To</span><span>Team</span><span></span></div>` +
+    state.assignments.map(a => `<div class="lrow" data-id="${a.id}">
+      <input type="date" value="${a.start}" data-f="start" aria-label="Range start">
+      <input type="date" value="${a.end}" data-f="end" aria-label="Range end">
+      <select data-f="team" aria-label="Team">${["A", "B", "C", "D"].map(t => `<option ${t === a.team ? "selected" : ""}>${t}</option>`).join("")}</select>
+      <button class="iconbtn" type="button" data-del="${a.id}" aria-label="Delete range">×</button></div>`).join("");
+}
+
+function rangeStats(s, e, code) {
+  let work = 0, off = 0, none = 0, w = 0;
+  for (let x = dn(s); x <= dn(e); x++) {
+    const i = dayInfo(isoOf(x));
+    if (i.working) { work++; if (LEAVE[code]) w += code === "MED" ? (+state.settings.medWeight || 0) : LEAVE[code].w; }
+    else if (i.eff === "OFF") off++; else none++;
+  }
+  return { work, off, none, w };
+}
+const rangeProblem = (s, e) => !s || !e ? "Pick a start and end date." : e < s ? "The end date is before the start date." : dn(e) - dn(s) > 366 ? "Pick a range of a year or less." : "";
+const plural = (n, w) => `${n} ${w}${n === 1 ? "" : "s"}`;
+function poolText(code) {
+  const def = LEAVE[code];
+  if (code === "MC" || code === "MCW") return "the shared MC pool (MC + MC w/o)";
+  if (def.pool === "wf") return "annual leave (brought forward → OIL → this year)";
+  if (def.pool === "hl") return "the HL pool"; if (def.pool === "fcl") return "the FCL pool"; if (def.pool === "bdl") return "the Birthday Leave pool";
+  if (def.pool && def.pool.startsWith("x:")) return `your ${def.name} quota`;
+  return null;
+}
+function renderRangePreview() {
+  // Section A: specific leave type
+  {
+    const s = $("rStart").value, e = $("rEnd").value, code = $("rCode").value, el = $("rPreview"), bad = rangeProblem(s, e);
+    if (bad) el.textContent = bad;
+    else {
+      const r = workDaysIn(s, e), n = r.work.length;
+      let w = r2(n * (code === "MED" ? (+state.settings.medWeight || 0) : LEAVE[code].w)), wfTxt = "";
+      const pool = poolText(code);
+      if (LEAVE[code].pool === "wf" && n) {   // shifts covered by OIL count as 1 day each
+        const p = planWaterfall(s, e, code); w = p.required;
+        wfTxt = ` (brought forward ${fmtN(p.split.bf)} · OIL ${fmtN(p.split.oil)}${p.oilParts.length ? " — " + oilPartsText(p.oilParts) : ""} · this year ${fmtN(p.split.al)}${p.gross !== p.required ? "; each shift on OIL counts as 1 day" : ""})`;
+      }
+      el.textContent = `${plural(r.cal, "calendar day")} selected → ${plural(n, "working shift")} affected${r.off ? ` (${plural(r.off, "off day")} skipped)` : ""} → ` +
+        (pool && w > 0 ? `Deducts ${fmtN(w)} day${w === 1 ? "" : "s"} from ${pool}${wfTxt}` : `${short(code)} recorded, 0 days deducted`) + (r.none ? ` · ${plural(r.none, "day")} with no team set` : "");
+    }
+  }
+  // Section B: annual leave calculator
+  {
+    const s = $("wStart").value, e = $("wEnd").value, code = $("wOVL").checked ? "OVL" : "OL", el = $("wPreview"), bad = rangeProblem(s, e);
+    if (bad) { el.textContent = bad; return; }
+    const p = planWaterfall(s, e, code), n = p.work.length;
+    const row = (k, v, strong) => `<tr><td>${k}</td><td class="n">${strong ? `<b>${v}</b>` : v}</td></tr>`;
+    const bal = p.years.map(y => {
+      const b = p.before[y], a = p.after[y];
+      const cell = (x, z) => `${fmtN(x)} → <b class="${z < 0 ? "warn" : ""}">${fmtN(z)}</b>`;
+      return `<table><tr><th>Remaining after${p.years.length > 1 ? ` · ${y}` : ""}</th><th class="n">before → after</th></tr>
+        ${row("Brought forward", cell(b.bf, a.bf))}${row(`Unlocked OIL (on ${fmtShort(y === e.slice(0, 4) ? e : y + "-12-31")})`, cell(b.oil, a.oil))}${row("This year's annual leave", cell(b.al, a.al))}</table>`;
+    }).join("");
+    const short_ = p.years.some(y => p.after[y].al < 0);
+    el.innerHTML = `<div><span class="sub2">${plural(p.cal, "calendar day")} · ${plural(n, "working shift")} · ${plural(p.off, "off day")} skipped</span><br>
+        <span class="big2">${fmtN(p.required)}d</span> <span class="sub2">needed (${n} × ${fmtN(LEAVE[code].w)} ${short(code)}${p.gross !== p.required ? ` = ${fmtN(p.gross)}, but each shift on OIL counts as 1 day` : ""})</span></div>
+      <table><tr><th>Deducted from</th><th class="n">days</th></tr>
+        ${row("1 · Leave brought forward", fmtN(p.split.bf))}${row("2 · Unlocked OIL", fmtN(p.split.oil))}${p.oilParts.length ? `<tr><td colspan="2" class="sub2">OIL used: ${esc(oilPartsText(p.oilParts, true))}</td></tr>` : ""}${row("3 · This year's annual leave", fmtN(p.split.al))}
+        ${p.split.pre ? row("Before your starting point (already counted)", fmtN(p.split.pre)) : ""}</table>
+      ${bal}
+      ${short_ ? `<div class="warn">⚠ You need ${fmtN(p.required)} days, which is more than your brought-forward, OIL and annual leave together. Annual leave would go negative.</div>` : ""}
+      ${p.none ? `<div class="sub2">${plural(p.none, "day")} in this range have no team set, so they're skipped.</div>` : ""}`;
+  }
+}
+
+/* ---------- day editor ---------- */
+function openDay(d) {
+  ui.editing = d;
+  const i = dayInfo(d), ph = state.holidays.find(h => h.date === d);
+  $("mTitle").textContent = fmtD(d);
+  $("mInfo").textContent = (i.team ? `Team ${i.team} · scheduled ${i.sched ? SHIFT_INFO[i.sched] : "—"}` : "No team assigned for this date") + (ph ? ` · Public holiday: ${ph.name}` : "");
+  $("mShift").innerHTML = `<option value="">As scheduled (${i.sched || "none"})</option><option value="M">M · Morning</option><option value="N">N · Night</option><option value="OFF">OFF · Off day</option>`;
+  $("mShift").value = i.rec.shift || "";
+  $("mCode").value = i.rec.status || "";
+  ui.editOil = i.rec.oilFor || "";
+  renderOilPick();
+  $("mNote").value = i.rec.note || "";
+  ui.editEvents = (i.rec.events || []).map(e => ({ ...e }));
+  $("mEvTitle").value = ""; $("mEvTime").value = "";
+  renderModalEvents();
+  renderModalSpans();
+  renderBreak();
+  $("dayModal").hidden = false; $("mShift").focus();
+}
+function renderBreak() {
+  const d = ui.editing; if (!d) return;
+  const saved = state.days[d];
+  // preview with current form values
+  const tmp = { ...(saved || {}) };
+  const sh = $("mShift").value, cd = $("mCode").value;
+  if (sh) tmp.shift = sh; else delete tmp.shift;
+  if (cd) tmp.status = cd; else delete tmp.status;
+  state.days[d] = tmp;
+  const c = computeYear(d.slice(0, 4)), p = c.per[d];
+  if (saved) state.days[d] = saved; else delete state.days[d];
+  if (!p) { $("mBreak").innerHTML = ""; return; }
+  const rows = [["Leave status", d <= ui.asOf ? "Taken, counted in balances" : `Booked, comes off your balance on ${fmtShort(d)}`], ["Deducted",p.w > 0 ? fmtN(p.w) + " day" + (p.w === 1 ? "" : "s") : "0 (" + (p.working ? "not a leave deduction" : "off day") + ")"]];
+  if (p.br.pre) {
+    rows.push(["Balances", "Before your starting point, so already counted in it"]);
+  } else if (LEAVE[p.code].pool === "wf" && p.w > 0) {
+    rows.push(["Unlocked OIL before this day", fmtN(p.br.oilAvail)]);
+    if (p.br.bfSkipped) rows.push(["Brought forward left aside", fmtN(p.br.bfSkipped) + " (too little for a whole shift, so OIL was used)"]);
+    rows.push(["From brought forward", fmtN(p.br.bf)], ["From unlocked OIL", fmtN(p.br.oil) + (p.br.oilFrom && p.br.oilFrom.length ? " · " + esc(oilPartsText(p.br.oilFrom, true)) : "")], ["From this year's leave", fmtN(p.br.al)]);
+  } else if (p.br.pool) rows.push(["From pool", LEAVE[p.code].pool.toUpperCase() + " " + fmtN(p.br.pool)]);
+  $("mBreak").innerHTML = rows.map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join("");
+}
+function closeDay() { $("dayModal").hidden = true; const d = ui.editing; ui.editing = null; const b = d && document.querySelector(`.cell[data-d="${d}"]`); if (b) b.focus(); }
+function renderModalEvents() {
+  const evs = evSort(ui.editEvents || []);
+  $("mEvents").innerHTML = evs.length ? evs.map(e => `<div class="erow"><span>${e.time ? `<b>${e.time}</b> · ` : ""}${esc(e.title)}</span>
+    <button class="iconbtn" type="button" data-delev="${e.id}" aria-label="Remove ${esc(e.title)}">×</button></div>`).join("")
+    : `<p class="hint">No events on this day.</p>`;
+}
+const usedTxt = u => u === "before" ? "used before your starting point" : `used on ${fmtShort(u)}`;
+const modalWorking = () => { const i = dayInfo(ui.editing), sh = $("mShift").value || i.sched; return sh === "M" || sh === "N"; };
+function renderOilPick() {
+  const d = ui.editing, show = $("mCode").value === "OIL";
+  $("mOilWrap").hidden = !show; if (!show || !d) return;
+  const cur = ui.editOil;
+  const ch = oilChoices(d, k => k === d);
+  const ok = ch.filter(c => c.unlocked && !c.usedOn);
+  $("mOil").innerHTML = `<option value="">${ok.length ? "Choose a public holiday…" : "No unused OIL is unlocked before this date"}</option>` +
+    ch.map(c => `<option value="${c.date}" ${!c.unlocked || c.usedOn ? "disabled" : ""}>${esc(c.name)} · ${fmtShort(c.date)}${!c.unlocked ? " (not unlocked yet)" : c.usedOn ? ` (${usedTxt(c.usedOn)})` : ""}</option>`).join("");
+  $("mOil").value = ok.some(c => c.date === cur) ? cur : "";
+  $("mOilWrap").firstChild.textContent = modalWorking() ? "Which OIL is this? (the public holiday it was earned on)" : "Which OIL is this? (optional on an off day, which deducts nothing)";
+}
+function renderModalSpans() {
+  const d = ui.editing; if (!d) return;
+  const sps = spansOn(d);
+  $("mSpans").innerHTML = sps.map(s => `<div class="sprow"><i style="background:${s.color}"></i>
+      <span>${esc(s.title)}${s.time ? ` · ${s.time}` : ""}<br><span class="hint">${spanDates(s)}</span></span>
+      <button class="btn sm" type="button" data-editsp="${s.id}">Edit</button>
+      <button class="iconbtn" type="button" data-delsp="${s.id}" aria-label="Delete ${esc(s.title)}">×</button></div>`).join("") +
+    `<div class="mrow" style="justify-content:flex-start"><button class="btn sm" type="button" id="mSpanNew">+ Multi-day event from this day</button></div>`;
+  $("mSpanNew").onclick = () => { closeDay(); resetSpanForm(); $("spPanel").open = true; $("sp-start").value = d; $("sp-end").value = d; $("spPanel").scrollIntoView({ block: "start" }); $("sp-title").focus(); };
+}
+function addModalEvent() {
+  const t = $("mEvTitle").value.trim(); if (!t) { $("mEvTitle").focus(); return; }
+  ui.editEvents.push({ id: uid(), title: t, time: $("mEvTime").value || "" });
+  $("mEvTitle").value = ""; $("mEvTime").value = ""; renderModalEvents(); $("mEvTitle").focus();
+}
+function setDay(d, patch) {
+  const r = { ...(state.days[d] || {}), ...patch };
+  for (const k of ["shift", "status", "note", "oilFor"]) if (!r[k]) delete r[k];
+  if (r.status !== "OIL") delete r.oilFor;
+  if (!r.events || !r.events.length) delete r.events;
+  if (Object.keys(r).length) state.days[d] = r; else delete state.days[d];
+}
+
+/* ---------- export / import ---------- */
+async function offerFile(filename, text, type) {
+  let dl = null;
+  if (dl) {
+    try { await dl.save({ filename, data: text }); toast("Saved " + filename); }
+    catch (e) { if (e && e.code === "declined") toast("Download cancelled"); else toast("Couldn't save the file (" + ((e && e.code) || "error") + ")"); }
+    return;
+  }
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob([text], { type })); a.download = filename;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+  toast("Downloaded " + filename);
+}
+function csvCell(v) { v = v == null ? "" : String(v); return /[",\n]/.test(v) ? `"${v.replace(/"/g, '""')}"` : v; }
+function buildCsv(y) {
+  const c = computeYear(y), ph = {}; state.holidays.forEach(h => ph[h.date] = h.name);
+  const rows = [["Date", "Day", "Team", "Scheduled", "Actual", "Public holiday", "Status", "Deducted", "From brought forward", "From OIL", "From this year's leave", "From pool", "OIL for", "Events", "Note"]];
+  for (let x = dn(y + "-01-01"), e = dn(y + "-12-31"); x <= e; x++) {
+    const d = isoOf(x), i = dayInfo(d), p = c.per[d];
+    rows.push([d, new Date(x * DAY).toLocaleDateString("en-SG", { weekday: "short", timeZone: "UTC" }), i.team || "", i.sched || "", i.eff || "", ph[d] || "",
+      i.rec.status ? short(i.rec.status) : "", p ? p.w : "", p ? p.br.bf : "", p ? p.br.oil : "", p ? p.br.al : "", p ? p.br.pool : "", i.rec.oilFor ? `${ph[i.rec.oilFor] || "PH"} ${i.rec.oilFor}` : "", [...spansOn(d).map(s => (s.time ? s.time + " " : "") + s.title + ` (${s.start} to ${s.end})`), ...evSort(i.rec.events || []).map(e => (e.time ? e.time + " " : "") + e.title)].join("; "), i.rec.note || ""]);
+  }
+  return rows.map(r => r.map(csvCell).join(",")).join("\r\n");
+}
+
+/* ---------- events ---------- */
+function bind() {
+  $("yearSel").addEventListener("change", e => {
+    ui.year = e.target.value;
+    const t = todayIso();
+    ui.asOf = t.startsWith(ui.year) ? t : (ui.year < t.slice(0, 4) ? ui.year + "-12-31" : ui.year + "-01-01");
+    ui.month = (t.startsWith(ui.year) ? t : ui.year + "-01-01").slice(0, 7);
+    render();
+  });
+  $("asOf").addEventListener("change", e => { if (!e.target.value) return; ui.asOf = e.target.value; ui.year = ui.asOf.slice(0, 4); render(); });
+  $("prevM").onclick = () => { const [y, m] = ui.month.split("-").map(Number); ui.month = isoOf(dn(`${m === 1 ? y - 1 : y}-${String(m === 1 ? 12 : m - 1).padStart(2, "0")}-01`)).slice(0, 7); renderCal(); };
+  $("nextM").onclick = () => { const [y, m] = ui.month.split("-").map(Number); ui.month = `${m === 12 ? y + 1 : y}-${String(m === 12 ? 1 : m + 1).padStart(2, "0")}`; renderCal(); };
+  $("todayM").onclick = () => { ui.month = todayIso().slice(0, 7); renderCal(); };
+  $("cal").addEventListener("click", e => { const b = e.target.closest(".cell"); if (b) openDay(b.dataset.d); });
+
+  $("mShift").onchange = () => { renderOilPick(); renderBreak(); };
+  $("mCode").onchange = () => { renderOilPick(); renderBreak(); };
+  $("mOil").onchange = e => { ui.editOil = e.target.value; };
+  $("mCancel").onclick = closeDay;
+  $("mEvAdd").onclick = addModalEvent;
+  $("mEvTitle").addEventListener("keydown", e => { if (e.key === "Enter") { e.preventDefault(); addModalEvent(); } });
+  $("mEvents").addEventListener("click", e => { const id = e.target.dataset && e.target.dataset.delev; if (!id) return; ui.editEvents = ui.editEvents.filter(x => x.id !== id); renderModalEvents(); });
+  $("mSave").onclick = () => {
+    const isOil = $("mCode").value === "OIL";
+    if (isOil && modalWorking() && !$("mOil").value) {
+      toast($("mOil").options.length > 1 && [...$("mOil").options].some(o => o.value && !o.disabled) ? "Choose which public holiday this OIL is for" : "There's no unused OIL unlocked before this date");
+      $("mOil").focus(); return;
+    }
+    if ($("mEvTitle").value.trim()) ui.editEvents.push({ id: uid(), title: $("mEvTitle").value.trim(), time: $("mEvTime").value || "" });
+    setDay(ui.editing, { shift: $("mShift").value, status: $("mCode").value, oilFor: isOil ? $("mOil").value : "", note: $("mNote").value.trim(), events: ui.editEvents }); save(); closeDay(); render(); toast("Day saved"); };
+  $("mReset").onclick = () => { delete state.days[ui.editing]; save(); closeDay(); render(); toast("Day reset to schedule"); };
+  $("dayModal").addEventListener("click", e => { if (e.target === $("dayModal")) closeDay(); });
+  document.addEventListener("keydown", e => { if (e.key === "Escape") { if (!$("dayModal").hidden) closeDay(); if (!$("importModal").hidden) $("importModal").hidden = true; } });
+
+  ["rStart", "rEnd", "rCode"].forEach(id => $(id).addEventListener("change", () => { renderRangePreview(); renderRangeOil(); renderCal(); }));
+  ["logType", "logShow", "logOff"].forEach(id => $(id).addEventListener("change", renderLog));
+  $("logBody").addEventListener("click", e => { const tr = e.target.closest("tr[data-d]"); if (tr) openDay(tr.dataset.d); });
+
+  $("spSave").onclick = () => {
+    const title = $("sp-title").value.trim(), s = $("sp-start").value, e = $("sp-end").value || $("sp-start").value;
+    if (!title) { toast("Give the event a name"); $("sp-title").focus(); return; }
+    if (!s) { toast("Pick a start date"); $("sp-start").focus(); return; }
+    if (e < s) { toast("The end date is before the start date"); $("sp-end").focus(); return; }
+    const data = { title, start: s, end: e, time: $("sp-time").value || "", color: $("sp-color").value };
+    const ex = ui.editSpan && state.spans.find(x => x.id === ui.editSpan);
+    if (ex) Object.assign(ex, data); else state.spans.push({ id: uid(), ...data });
+    const msg = ex ? "Event updated" : "Event added";
+    resetSpanForm(); save(); render(); showOnCal(s, e); toast(msg + " to the calendar");
+  };
+  $("spCancel").onclick = resetSpanForm;
+  $("sp-start").addEventListener("change", e => { if (!$("sp-end").value || $("sp-end").value < e.target.value) $("sp-end").value = e.target.value; });
+  $("spList").addEventListener("click", e => {
+    const t = e.target.closest("button"); if (!t) return;
+    if (t.dataset.delsp) { state.spans = state.spans.filter(s => s.id !== t.dataset.delsp); if (ui.editSpan === t.dataset.delsp) resetSpanForm(); save(); render(); toast("Event removed"); }
+    if (t.dataset.editsp) {
+      const s = state.spans.find(x => x.id === t.dataset.editsp); if (!s) return;
+      ui.editSpan = s.id; $("sp-title").value = s.title; $("sp-start").value = s.start; $("sp-end").value = s.end; $("sp-time").value = s.time; $("sp-color").value = s.color;
+      $("spSave").textContent = "Save changes"; $("spCancel").hidden = false; showOnCal(s.start, s.end); $("sp-title").focus();
+    }
+  });
+  $("mSpans").addEventListener("click", e => {
+    const t = e.target.closest("button"); if (!t) return;
+    if (t.dataset.delsp) { state.spans = state.spans.filter(s => s.id !== t.dataset.delsp); save(); renderModalSpans(); render(); toast("Event removed"); }
+    if (t.dataset.editsp) { const id = t.dataset.editsp; closeDay(); $("spPanel").open = true; const b = document.querySelector(`[data-editsp="${id}"]`); if (b) { b.click(); $("spPanel").scrollIntoView({ block: "start" }); } }
+  });
+
+  $("clAdd").onclick = () => {
+    const code = $("cl-code").value.trim().toUpperCase(), name = $("cl-name").value.trim();
+    if (!/^[A-Z0-9]{1,6}$/.test(code)) { toast("Use a short code of 1–6 letters or numbers"); $("cl-code").focus(); return; }
+    if (LEAVE[code]) { toast(`${code} is already a leave type`); $("cl-code").focus(); return; }
+    if (!name) { toast("Give the leave type a name"); $("cl-name").focus(); return; }
+    state.customLeave.push({ code, name, w: num($("cl-w").value, 0), pool: $("cl-pool").value, quota: num($("cl-quota").value, 0), color: $("cl-color").value });
+    LEAVE = buildLeave(state.customLeave);
+    $("cl-code").value = ""; $("cl-name").value = "";
+    save(); render(); toast(`${name} added`);
+  };
+  $("cl-pool").addEventListener("change", e => { $("cl-quota").disabled = e.target.value !== "own"; });
+  $("clList").addEventListener("click", e => {
+    const code = e.target.dataset && e.target.dataset.delcl; if (!code) return;
+    const n = Object.values(state.days).filter(r => r.status === code).length;
+    if (n) { toast(`${code} is used on ${n} day${n === 1 ? "" : "s"}. Clear those first.`); return; }
+    state.customLeave = state.customLeave.filter(c => c.code !== code); LEAVE = buildLeave(state.customLeave);
+    save(); render(); toast("Leave type removed");
+  });
+  $("rApply").onclick = () => {
+    const s = $("rStart").value, e = $("rEnd").value, code = $("rCode").value, note = $("rNote").value.trim();
+    const bad = rangeProblem(s, e); if (bad) { toast(bad); return; }
+    const work = workDaysIn(s, e).work;
+    if (!work.length) { toast("There are no working shifts in this range, so nothing was applied"); return; }
+    let oilMap = {};
+    if (code === "OIL") {
+      const picked = [...$("rOilList").querySelectorAll("input:checked")].map(i => i.value);
+      if (picked.length !== work.length) { toast(`Tick ${plural(work.length, "public holiday")}, one for each working shift (${picked.length} ticked)`); return; }
+      oilMap = assignOil(work, picked);
+      if (!oilMap) { toast("Each OIL must come from a public holiday before the day it's used"); return; }
+    }
+    const w = LEAVE[code].pool === "wf" ? planWaterfall(s, e, code).required : r2(work.length * (code === "MED" ? (+state.settings.medWeight || 0) : LEAVE[code].w));
+    for (const d of work) setDay(d, note ? { status: code, oilFor: oilMap[d] || "", note } : { status: code, oilFor: oilMap[d] || "" });
+    $("rNote").value = "";
+    save(); render(); showOnCal(s, e);
+    toast(`${short(code)} applied to ${plural(work.length, "working shift")} · ${fmtN(w)}d deducted`);
+  };
+  $("wApply").onclick = () => {
+    const s = $("wStart").value, e = $("wEnd").value, code = $("wOVL").checked ? "OVL" : "OL", note = $("wNote").value.trim();
+    const bad = rangeProblem(s, e); if (bad) { toast(bad); return; }
+    const p = planWaterfall(s, e, code);
+    if (!p.work.length) { toast("There are no working shifts in this range, so nothing was applied"); return; }
+    for (const d of p.work) setDay(d, note ? { status: code, note } : { status: code });
+    $("wNote").value = "";
+    save(); render(); showOnCal(s, e);
+    toast(`${short(code)} applied · ${fmtN(p.required)}d: BF ${fmtN(p.split.bf)} · OIL ${fmtN(p.split.oil)}${p.oilParts.length ? " (" + oilPartsText(p.oilParts) + ")" : ""} · this year ${fmtN(p.split.al)}`);
+  };
+  const clearRange = (s, e) => {
+    const bad = rangeProblem(s, e); if (bad) { toast(bad); return; }
+    for (let x = dn(s); x <= dn(e); x++) setDay(isoOf(x), { status: "" });
+    save(); render(); showOnCal(s, e); toast("Leave cleared in range");
+  };
+  $("rClear").onclick = () => clearRange($("rStart").value, $("rEnd").value);
+  $("wClear").onclick = () => clearRange($("wStart").value, $("wEnd").value);
+  const showTab = b => {
+    $("tabA").setAttribute("aria-selected", String(!b)); $("tabB").setAttribute("aria-selected", String(b));
+    $("secA").hidden = b; $("secB").hidden = !b; ui.tabB = b; renderCal();
+    try { localStorage.setItem(LS_KEY + ".tab", b ? "B" : "A"); } catch (e) {}
+  };
+  $("tabA").onclick = () => showTab(false); $("tabB").onclick = () => showTab(true);
+  $("tabA").parentElement.addEventListener("keydown", e => { if (e.key === "ArrowRight" || e.key === "ArrowLeft") { const b = !ui.tabB; showTab(b); $(b ? "tabB" : "tabA").focus(); } });
+  try { if (localStorage.getItem(LS_KEY + ".tab") === "B") showTab(true); } catch (e) {}
+  ["wStart", "wEnd", "wOL", "wOVL"].forEach(id => $(id).addEventListener("change", () => { renderRangePreview(); renderCal(); }));
+  $("wStart").addEventListener("change", e => { if (!$("wEnd").value || $("wEnd").value < e.target.value) { $("wEnd").value = e.target.value; renderRangePreview(); renderCal(); } });
+  $("rStart").addEventListener("change", e => { if (!$("rEnd").value || $("rEnd").value < e.target.value) { $("rEnd").value = e.target.value; renderRangePreview(); renderRangeOil(); renderCal(); } });
+
+  for (const k of ["bf", "al", "mc", "hl", "fcl", "bdl"]) $("b-" + k).addEventListener("change", e => {
+    const y = ui.year, cur = getYear(y); delete cur._new;
+    state.years[y] = { ...cur, [k]: num(e.target.value, 0) }; save(); renderDash(); renderCal();
+  });
+  $("cpSave").onclick = () => {
+    const y = ui.year, d = $("cp-date").value;
+    if (!d || !d.startsWith(y + "-")) { toast(`Pick a date in ${y}`); $("cp-date").focus(); return; }
+    const cur = { ...getYear(y) }; delete cur._new;
+    const keepFrom = cur.cp && cur.cp.date === d && cur.cp.oilFrom;
+    cur.cp = { date: d, oil: num($("cp-oil").value, 0), al: num($("cp-al").value, 0), bf: num($("cp-bf").value, 0) };
+    if (keepFrom) cur.cp.oilFrom = keepFrom;
+    state.years[y] = cur; save(); render(); showOnCal(d); toast("Starting point saved");
+  };
+  $("cpClear").onclick = () => {
+    const y = ui.year, cur = { ...getYear(y) }; delete cur._new; delete cur.cp;
+    state.years[y] = cur; save(); render(); toast("Starting point removed");
+  };
+  $("resetQuotas").onclick =() => { const y = ui.year, cur = getYear(y); delete cur._new; state.years[y] = { ...cur, ...state.defaults }; save(); render(); toast(`${y} quotas reset to defaults`); };
+  for (const k of ["mc", "hl", "fcl", "bdl"]) $("d-" + k).addEventListener("change", e => { state.defaults[k] = num(e.target.value, 0); save(); render(); });
+  $("s-bday-m").innerHTML = `<option value="">—</option>` + ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"].map((m, i) => `<option value="${String(i + 1).padStart(2, "0")}">${m}</option>`).join("");
+  const setBday = () => {
+    const dd = parseInt($("s-bday-d").value, 10), mm = $("s-bday-m").value;
+    if (!mm || !dd) { if (!mm && !$("s-bday-d").value) { state.settings.birthday = ""; save(); render(); } return; }
+    if (dd < 1 || dd > 31) { toast("Enter a day from 1 to 31"); return; }
+    state.settings.birthday = `${mm}-${String(dd).padStart(2, "0")}`; save(); render(); toast("Birthday saved");
+  };
+  $("s-bday-d").addEventListener("change", setBday); $("s-bday-m").addEventListener("change", setBday);
+  $("s-med").addEventListener("change",e => { state.settings.medWeight = num(e.target.value, 0); save(); render(); });
+  $("s-carry").addEventListener("change", e => { state.settings.carryXmas = e.target.checked; save(); render(); });
+  $("s-oil").addEventListener("change", e => { state.settings.oilFirst = e.target.checked; save(); render(); });
+
+  $("teamList").addEventListener("change", e => {
+    const row = e.target.closest(".lrow"); if (!row || !row.dataset.id) return;
+    const a = state.assignments.find(x => x.id === row.dataset.id); if (!a) return;
+    a[e.target.dataset.f] = e.target.value; save(); render();
+    if (a.start && a.end && a.start <= a.end) showOnCal(e.target.dataset.f === "end" ? a.end : a.start, e.target.dataset.f === "end" ? a.end : a.start);
+  });
+  $("teamList").addEventListener("click", e => {
+    const id = e.target.dataset && e.target.dataset.del; if (!id) return;
+    state.assignments = state.assignments.filter(a => a.id !== id); save(); render(); toast("Range removed");
+  });
+  $("addTeam").onclick = () => {
+    const last = state.assignments.reduce((m, a) => a.end > m ? a.end : m, "");
+    const start = last ? isoOf(dn(last) + 1) : todayIso();
+    state.assignments.push({ id: uid(), start, end: isoOf(dn(start) + 89), team: "A" }); save(); render(); showOnCal(start, start);
+    const p = $("teamList").lastElementChild; if (p) p.querySelector("input").focus();
+  };
+
+
+  $("exportJson").onclick = () => offerFile(`shift-leave-backup-${todayIso()}.json`, JSON.stringify(state, null, 2), "application/json");
+  $("exportCsv").onclick = () => offerFile(`shift-leave-${ui.year}.csv`, buildCsv(ui.year), "text/csv");
+  $("importBtn").onclick = () => $("importFile").click();
+  $("importFile").addEventListener("change", async e => {
+    const f = e.target.files[0]; e.target.value = ""; if (!f) return;
+    try {
+      const s = normalise(JSON.parse(await f.text()));
+      ui.pendingImport = s;
+      $("iInfo").textContent = `${f.name}: ${s.assignments.length} team ranges, ${s.holidays.length} holidays, ${Object.keys(s.days).length} edited days, ${Object.keys(s.years).length} years of balances. This replaces everything currently in the tracker.`;
+      $("importModal").hidden = false; $("iConfirm").focus();
+    } catch (err) { toast("That file isn't a tracker backup (couldn't read it as JSON)"); }
+  });
+  $("iCancel").onclick = () => { $("importModal").hidden = true; ui.pendingImport = null; };
+  $("iConfirm").onclick = () => { setState(ui.pendingImport); refreshCodeOptions(); ui.pendingImport = null; $("importModal").hidden = true; save(); render(); toast("Backup restored"); };
+}
+
+load();
+let migratedLocally = false;
+if (applyMigrations()) { saveLocal(); migratedLocally = true; }
+refreshCodeOptions(); $("rCode").value = "OL";
+bind();
+render();
+showStorageBanner();
+startCloud();
+// Keep "as of" on today while the page stays open, so balances update the day leave is taken
+let lastToday = todayIso();
+function checkNewDay() {
+  const t = todayIso(); if (t === lastToday) return;
+  if (ui.asOf === lastToday) { ui.asOf = t; ui.year = t.slice(0, 4); render(); }
+  else renderCal();
+  lastToday = t;
+}
+setInterval(checkNewDay, 60000);
+// Phones pause background tabs, so also re-check when you come back to the page
+document.addEventListener("visibilitychange", () => { if (!document.hidden) checkNewDay(); });
+window.addEventListener("focus", checkNewDay);
+window.addEventListener("pageshow", checkNewDay);
+</script>
+
+</body></html>
