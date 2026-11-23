@@ -445,7 +445,7 @@ details.panel[open]>summary::after{content:"–"}
       <details class="panel" data-m="more">
         <summary>Settings</summary>
         <div class="pbody">
-          <p class="hint">Default quotas for each new year:</p>
+          <p class="hint">Default quotas. Changing one also updates any year still on the old number; a year you changed by hand keeps its own.</p>
           <div class="g2">
             <label for="d-mc">MC + MC w/o<input type="number" step="0.5" min="0" id="d-mc"></label>
             <label for="d-hl">HL<input type="number" step="0.5" min="0" id="d-hl"></label>
@@ -1477,7 +1477,12 @@ function bind() {
     state.years[y] = cur; save(); render(); toast("Starting point removed");
   };
   $("resetQuotas").onclick =() => { const y = ui.year, cur = getYear(y); delete cur._new; state.years[y] = { ...cur, ...state.defaults }; save(); render(); toast(`${y} quotas reset to defaults`); };
-  for (const k of ["mc", "hl", "fcl", "bdl", "xhl"]) $("d-" + k).addEventListener("change", e => { state.defaults[k] = num(e.target.value, 0); save(); render(); });
+  // Changing a default also updates every year still on the old default, so the change shows straight away
+  for (const k of ["mc", "hl", "fcl", "bdl", "xhl"]) $("d-" + k).addEventListener("change", e => {
+    const old = +state.defaults[k] || 0, nv = num(e.target.value, 0); state.defaults[k] = nv;
+    for (const yb of Object.values(state.years)) if ((+yb[k] || 0) === old) yb[k] = nv;
+    save(); render();
+  });
   $("s-bday-m").innerHTML = `<option value="">—</option>` + ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"].map((m, i) => `<option value="${String(i + 1).padStart(2, "0")}">${m}</option>`).join("");
   const setBday = () => {
     const dd = parseInt($("s-bday-d").value, 10), mm = $("s-bday-m").value;
